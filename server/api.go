@@ -95,48 +95,48 @@ func getBookByIDHandler(db *sql.DB) http.HandlerFunc {
   }
 }
 
-
 // addBookPayload is the expected JSON body for creating a book.
 type addBookPayload struct {
-	Title       string  `json:"title"`
-	Author      string  `json:"author"`
-	NumChapters int64   `json:"numChapters"`
-	Link        *string `json:"link,omitempty"`
+  Title       string  `json:"title"`
+  Author      string  `json:"author"`
+  NumChapters int64   `json:"numChapters"`
+  Link        *string `json:"link,omitempty"`
+  CourseID    *int64  `json:"courseId,omitempty"`
 }
 
-// addBookHandler handles POST /books with a JSON body.
 func addBookHandler(db *sql.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
+  return func(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodPost {
+      http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+      return
+    }
 
-		var p addBookPayload
-		dec := json.NewDecoder(r.Body)
-		dec.DisallowUnknownFields()
-		if err := dec.Decode(&p); err != nil {
-			http.Error(w, "bad request", http.StatusBadRequest)
-			return
-		}
+    var p addBookPayload
+    dec := json.NewDecoder(r.Body)
+    dec.DisallowUnknownFields()
+    if err := dec.Decode(&p); err != nil {
+      http.Error(w, "bad request", http.StatusBadRequest)
+      return
+    }
 
-		if strings.TrimSpace(p.Title) == "" || strings.TrimSpace(p.Author) == "" {
-			http.Error(w, "title and author are required", http.StatusBadRequest)
-			return
-		}
-		if p.NumChapters < 0 {
-			http.Error(w, "numChapters must be >= 0", http.StatusBadRequest)
-			return
-		}
+    if strings.TrimSpace(p.Title) == "" || strings.TrimSpace(p.Author) == "" {
+      http.Error(w, "title and author are required", http.StatusBadRequest)
+      return
+    }
+    if p.NumChapters < 0 {
+      http.Error(w, "numChapters must be >= 0", http.StatusBadRequest)
+      return
+    }
 
-		item, err := AddBook(db, p.Title, p.Author, p.NumChapters, p.Link)
-		if err != nil {
-			http.Error(w, "internal error", http.StatusInternalServerError)
-			return
-		}
-		writeJSON(w, item, http.StatusCreated)
-	}
+    item, err := AddBook(db, p.Title, p.Author, p.NumChapters, p.Link, p.CourseID)
+    if err != nil {
+      http.Error(w, "internal error", http.StatusInternalServerError)
+      return
+    }
+    writeJSON(w, item, http.StatusCreated)
+  }
 }
+
 
 type patchBookPayload struct {
 	CompletedChapters int64 `json:"completedChapters"`
