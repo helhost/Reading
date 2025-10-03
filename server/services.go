@@ -6,7 +6,8 @@ import (
 
 type Item struct {
 	ID   int64  `json:"id"`
-	Name string `json:"name"`
+	Title string `json:"name"`
+	Author string `json:"author"`
 	NumChapters int64 `json:"numChapters"`
 	CompletedChapters int64 `json:"completedChapters"`
 }
@@ -16,7 +17,8 @@ func GetAllItems(db *sql.DB) ([]Item, error) {
 	rows, err := db.Query(`
 		SELECT
 			id,
-			name,
+			title,
+			author,
 			COALESCE(numChapters, 0),
 			COALESCE(completedChapters, 0)
 		FROM books
@@ -30,7 +32,7 @@ func GetAllItems(db *sql.DB) ([]Item, error) {
 	var out []Item
 	for rows.Next() {
 		var it Item
-		if err := rows.Scan(&it.ID, &it.Name, &it.NumChapters, &it.CompletedChapters); err != nil {
+		if err := rows.Scan(&it.ID, &it.Title, &it.Author, &it.NumChapters, &it.CompletedChapters); err != nil {
 			return nil, err
 		}
 		out = append(out, it)
@@ -44,7 +46,8 @@ func GetBookByID(db *sql.DB, id int64) (Item, error) {
 	row := db.QueryRow(`
 		SELECT
 			id,
-			name,
+			title,
+			author,
 			COALESCE(numChapters, 0),
 			COALESCE(completedChapters, 0)
 		FROM books
@@ -52,7 +55,7 @@ func GetBookByID(db *sql.DB, id int64) (Item, error) {
 	`, id)
 
 	var it Item
-	err := row.Scan(&it.ID, &it.Name, &it.NumChapters, &it.CompletedChapters)
+	err := row.Scan(&it.ID, &it.Title, &it.Author, &it.NumChapters, &it.CompletedChapters)
 	if err != nil {
 		return Item{}, err
 	}

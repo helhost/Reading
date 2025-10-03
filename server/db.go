@@ -21,7 +21,8 @@ func ensureSchema(db *sql.DB) error {
 	_, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS books (
 			id   INTEGER PRIMARY KEY AUTOINCREMENT,
-			name TEXT NOT NULL,
+			title TEXT NOT NULL,
+			author TEXT NOT NULL,
 			numChapters INTEGER,
 		  completedChapters INTEGER
 		);
