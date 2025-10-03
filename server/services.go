@@ -83,3 +83,17 @@ func AddBook(db *sql.DB, title, author string, numChapters int64, link *string) 
 	// Reuse the existing reader to return the fully-populated record.
 	return GetBookByID(db, id)
 }
+
+
+// UpdateCompletedChapters sets completedChapters for a book and returns the updated row.
+func UpdateCompletedChapters(db *sql.DB, id int64, completed int64) (Item, error) {
+	_, err := db.Exec(`
+		UPDATE books
+		SET completedChapters = ?
+		WHERE id = ?;
+	`, completed, id)
+	if err != nil {
+		return Item{}, err
+	}
+	return GetBookByID(db, id)
+}
