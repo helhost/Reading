@@ -34,6 +34,8 @@ func bookByIDHandler(db *sql.DB) http.HandlerFunc {
 			getBookByIDHandler(db)(w, r)
 		case http.MethodPatch:
 			patchBookHandler(db)(w, r)
+		case http.MethodDelete:
+			deleteBookHandler(db)(w, r)
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
@@ -188,6 +190,39 @@ func patchBookHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 		writeJSON(w, updated, http.StatusOK)
+	}
+}
+
+
+// deleteBookHandler handles DELETE /books/{id}.
+func deleteBookHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Extract ID
+		parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/books/"), "/")
+		if len(parts[0]) == 0 {
+			http.Error(w, "missing id", http.StatusBadRequest)
+			return
+		}
+		id, err := strconv.ParseInt(parts[0], 10, 64)
+		if err != nil {
+			http.Error(w, "invalid id", http.StatusBadRequest)
+			return
+		}
+
+		// Try delete
+		err = DeleteBook(db, id)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		// Just return 204 No Content
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 

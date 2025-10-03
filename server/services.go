@@ -97,3 +97,8 @@ func UpdateCompletedChapters(db *sql.DB, id int64, completed int64) (Item, error
 	}
 	return GetBookByID(db, id)
 }
+
+func DeleteBook(db *sql.DB, id int64) error {
+	_, err := db.Exec(`DELETE FROM books WHERE id = ?;`, id)
+	return err
+}
