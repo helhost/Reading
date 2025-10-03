@@ -166,3 +166,68 @@ func DeleteBook(db *sql.DB, id int64) error {
   _, err := db.Exec(`DELETE FROM books WHERE id = ?;`, id)
   return err
 }
+
+
+// GetAllCourses returns every course row.
+func GetAllCourses(db *sql.DB) ([]Course, error) {
+  rows, err := db.Query(`
+    SELECT id, year, term, code, name
+    FROM courses
+    ORDER BY year DESC, term DESC, code;
+  `)
+  if err != nil {
+    return nil, err
+  }
+  defer rows.Close()
+
+  var out []Course
+  for rows.Next() {
+    var c Course
+    if err := rows.Scan(&c.ID, &c.Year, &c.Term, &c.Code, &c.Name); err != nil {
+      return nil, err
+    }
+    out = append(out, c)
+  }
+  return out, rows.Err()
+}
+
+
+// AddCourse inserts a new course and returns it.
+func AddCourse(db *sql.DB, year, term int64, code, name string) (Course, error) {
+  res, err := db.Exec(`
+    INSERT INTO courses (year, term, code, name)
+    VALUES (?, ?, ?, ?);
+  `, year, term, code, name)
+  if err != nil {
+    return Course{}, err
+  }
+
+  id, err := res.LastInsertId()
+  if err != nil {
+    return Course{}, err
+  }
+
+  var c Course
+  err = db.QueryRow(`SELECT id, year, term, code, name FROM courses WHERE id = ?;`, id).
+    Scan(&c.ID, &c.Year, &c.Term, &c.Code, &c.Name)
+  if err != nil {
+    return Course{}, err
+  }
+  return c, nil
+}
+
+
+// GetCourseByID returns a single course by ID.
+func GetCourseByID(db *sql.DB, id int64) (Course, error) {
+    var c Course
+    err := db.QueryRow(`
+        SELECT id, year, term, code, name
+        FROM courses
+        WHERE id = ?;
+    `, id).Scan(&c.ID, &c.Year, &c.Term, &c.Code, &c.Name)
+    if err != nil {
+        return Course{}, err
+    }
+    return c, nil
+}
+

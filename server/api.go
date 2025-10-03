@@ -7,11 +7,16 @@ import (
   "strconv"
   "strings"
 )
-
 func registerRoutes(mux *http.ServeMux, db *sql.DB) {
-	mux.HandleFunc("/", rootHandler)
-	mux.HandleFunc("/books", booksHandler(db))
-	mux.HandleFunc("/books/", bookByIDHandler(db))
+    mux.HandleFunc("/", rootHandler)
+
+    // books routes
+    mux.HandleFunc("/books", booksHandler(db))
+    mux.HandleFunc("/books/", bookByIDHandler(db))
+
+    // courses routes
+    mux.HandleFunc("/courses", coursesHandler(db))
+    mux.HandleFunc("/courses/", courseByIDHandler(db))
 }
 
 func booksHandler(db *sql.DB) http.HandlerFunc {
@@ -224,6 +229,114 @@ func deleteBookHandler(db *sql.DB) http.HandlerFunc {
 		// Just return 204 No Content
 		w.WriteHeader(http.StatusNoContent)
 	}
+}
+
+
+
+// courses
+
+// /courses: GET list, POST create
+func coursesHandler(db *sql.DB) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        switch r.Method {
+        case http.MethodGet:
+            listCoursesHandler(db)(w, r)
+        case http.MethodPost:
+            addCourseHandler(db)(w, r)
+        default:
+            http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+        }
+    }
+}
+
+// /courses/{id}: GET single (you can add PATCH/DELETE later)
+func courseByIDHandler(db *sql.DB) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        switch r.Method {
+        case http.MethodGet:
+            getCourseByIDHandler(db)(w, r)
+        default:
+            http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+        }
+    }
+}
+
+func listCoursesHandler(db *sql.DB) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        if r.Method != http.MethodGet {
+            http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+            return
+        }
+        items, err := GetAllCourses(db)
+        if err != nil {
+            http.Error(w, "internal error", http.StatusInternalServerError)
+            return
+        }
+        writeJSON(w, items, http.StatusOK)
+    }
+}
+
+type addCoursePayload struct {
+    Year int64  `json:"year"`
+    Term int64  `json:"term"`
+    Code string `json:"code"`
+    Name string `json:"name"`
+}
+
+func addCourseHandler(db *sql.DB) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        if r.Method != http.MethodPost {
+            http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+            return
+        }
+
+        var p addCoursePayload
+        dec := json.NewDecoder(r.Body)
+        dec.DisallowUnknownFields()
+        if err := dec.Decode(&p); err != nil {
+            http.Error(w, "bad request", http.StatusBadRequest)
+            return
+        }
+        if p.Year <= 0 || p.Term <= 0 || strings.TrimSpace(p.Code) == "" || strings.TrimSpace(p.Name) == "" {
+            http.Error(w, "all fields are required", http.StatusBadRequest)
+            return
+        }
+
+        c, err := AddCourse(db, p.Year, p.Term, p.Code, p.Name)
+        if err != nil {
+            http.Error(w, "internal error", http.StatusInternalServerError)
+            return
+        }
+        writeJSON(w, c, http.StatusCreated)
+    }
+}
+
+func getCourseByIDHandler(db *sql.DB) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        if r.Method != http.MethodGet {
+            http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+            return
+        }
+
+        // path: /courses/{id}
+        parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/courses/"), "/")
+        if len(parts[0]) == 0 {
+            http.Error(w, "missing id", http.StatusBadRequest)
+            return
+        }
+        id, err := strconv.ParseInt(parts[0], 10, 64)
+        if err != nil {
+            http.Error(w, "invalid id", http.StatusBadRequest)
+            return
+        }
+
+        c, err := GetCourseByID(db, id)
+        if err != nil {
+            http.Error(w, "not found", http.StatusNotFound)
+            return
+        }
+        writeJSON(w, c, http.StatusOK)
+    }
 }
 
 
