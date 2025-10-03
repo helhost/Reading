@@ -63,3 +63,23 @@ func GetBookByID(db *sql.DB, id int64) (Item, error) {
   }
   return it, nil
 }
+
+
+// AddBook inserts a new book and returns the created row.
+func AddBook(db *sql.DB, title, author string, numChapters int64, link *string) (Item, error) {
+	res, err := db.Exec(`
+		INSERT INTO books (title, author, numChapters, completedChapters, link)
+		VALUES (?, ?, ?, 0, ?);
+	`, title, author, numChapters, link)
+	if err != nil {
+		return Item{}, err
+	}
+
+	id, err := res.LastInsertId()
+	if err != nil {
+		return Item{}, err
+	}
+
+	// Reuse the existing reader to return the fully-populated record.
+	return GetBookByID(db, id)
+}
