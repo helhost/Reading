@@ -22,12 +22,16 @@ func main() {
 	mux := http.NewServeMux()
 	registerRoutes(mux, db)
 
+	// wrap with CORS middleware
+	handler := withCORS(mux)
+
 	// start server
 	srv := &http.Server{
 		Addr:              ":8080",
-		Handler:           mux,
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
+
 	log.Println("listening on http://localhost:8080")
 	log.Fatal(srv.ListenAndServe())
 }
