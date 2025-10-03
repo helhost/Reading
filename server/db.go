@@ -24,7 +24,8 @@ func ensureSchema(db *sql.DB) error {
 			title TEXT NOT NULL,
 			author TEXT NOT NULL,
 			numChapters INTEGER,
-		  completedChapters INTEGER
+			completedChapters INTEGER,
+			link TEXT  -- optional, can be NULL
 		);
 	`)
 	return err
