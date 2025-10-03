@@ -1,0 +1,9 @@
+services:
+  server:
+    build: ./server
+    container_name: reading_server
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./server/data.db:/app/data.db
+    restart: unless-stopped
