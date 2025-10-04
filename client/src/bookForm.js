@@ -52,7 +52,7 @@ export function openBookForm(courseId, opts = {}) {
       initial.numChapters ?? "",
       { required: true, min: 1, step: 1 }
     ),
-    makeField("Link (optional)", "link", "url", initial.link || "")
+    //makeField("Link (optional)", "link", "url", initial.link || "")
   );
 
   // actions INSIDE the form (native submit)
@@ -81,9 +81,8 @@ export function openBookForm(courseId, opts = {}) {
       courseId,
       title: (fd.get("title") || "").toString().trim(),
       author: (fd.get("author") || "").toString().trim(),
-      // keep string per your earlier note
       numChapters: (fd.get("numChapters") || "").toString().trim(),
-      link: (fd.get("link") || "").toString().trim(),
+      //link: (fd.get("link") || "").toString().trim(),
     };
     if (typeof onSubmit === "function") onSubmit(data, { close: closeBookForm });
     else { console.log("create book (preview):", data); closeBookForm(); }
