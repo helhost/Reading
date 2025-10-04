@@ -18,6 +18,9 @@ body {
   color: var(--text-color);
 }
 
+
+/* ====== Course display ====== */
+
 .course-container {
   display: flex;
   flex-direction: column;
@@ -58,6 +61,10 @@ body {
   transform: rotate(-90deg); /* points right when hidden */
 }
 
+.course-box.collapsed .books {
+  display: none;
+}
+
 .course-title {
   margin: 0 0 0.5rem 0;
   font-size: 1.2rem;
@@ -69,6 +76,7 @@ body {
   color: inherit;
 }
 
+/* ====== Books display ====== */
 
 .books {
   margin-top: .75rem;
@@ -79,14 +87,12 @@ body {
   padding: 0;
   margin: 0;
   display: grid;
-  gap: .5rem;
+  gap: .4rem;
 }
 
 .book-item {
   padding: .5rem .75rem;
-  border: 1px solid rgba(255,255,255,.15);
-  border-radius: 8px;
-  background: color-mix(in oklab, var(--primary-color) 92%, black 8%);
+  background: none;
 }
 
 .book-title {
@@ -100,6 +106,43 @@ body {
 }
 
 
-.course-box.collapsed .books {
-  display: none;
+
+
+/* ====== Chapters display ====== */
+.chapters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.chapter-box {
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,.25);
+  background: color-mix(in oklab, var(--primary-color) 92%, black 8%);
+  color: var(--text-color);
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
+  user-select: none;
+}
+
+.chapter-box.completed {
+  background: color-mix(in oklab, var(--text-color) 18%, var(--primary-color) 82%);
+  border-color: color-mix(in oklab, var(--text-color) 35%, transparent);
+  position: relative;
+}
+
+.chapter-box.completed::after {
+  content: "✓";
+  position: absolute;
+  right: 3px;
+  bottom: 2px;
+  font-size: 0.7rem;
+  opacity: 0.85;
 }
