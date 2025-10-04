@@ -1,0 +1,14 @@
+services:
+  app:
+    build: .
+    container_name: reading_dev
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_PATH=/data/data.db
+      - ALLOW_ORIGIN=http://localhost:8080
+    volumes:
+      - ./server/data.db:/data/data.db
+      # live-edit the frontend without rebuilds:
+      - ./client:/app/client
+    restart: unless-stopped
