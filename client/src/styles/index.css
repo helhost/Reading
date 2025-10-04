@@ -1,6 +1,6 @@
 :root {
-  --bg-color: #f5f0ff;
-  --primary-color: #f8f8f8;
+  --bg-color: #f8f4ff;
+  --primary-color: #fcfaff;
   --text-color: #111;
   --border-color: color-mix(in oklab, var(--text-color) 18%, transparent);
   --shadow-color: rgba(0, 0, 0, 0.22);
@@ -301,4 +301,4 @@ body {
 }
 
 .userbar__left { font-weight: 400; }
-.userbar__right { display: flex; gap: .5rem; }
+.userbar__right { display: flex; gap: .5rem; padding-right: 2rem; }
