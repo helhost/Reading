@@ -18,10 +18,22 @@ for (let course of courses) {
   info.classList.add('course-info');
   info.textContent = `Term ${course.term}, ${course.year}`;
 
+  // indicator (only if there are books)
+  let indicator = null;
+
   box.appendChild(header);
   box.appendChild(info);
 
   if (Array.isArray(course.books) && course.books.length) {
+    box.classList.add('has-books');
+
+    // create indicator
+    indicator = document.createElement('span');
+    indicator.className = 'toggle-indicator';
+    indicator.setAttribute('aria-hidden', 'true');
+    indicator.textContent = '▾'; // down arrow
+    box.appendChild(indicator);
+
     const booksWrap = document.createElement('div');
     booksWrap.classList.add('books');
 
@@ -49,7 +61,6 @@ for (let course of courses) {
     box.appendChild(booksWrap);
   }
 
-  // toggle visibility on click
   box.addEventListener('click', () => {
     box.classList.toggle('collapsed');
   });

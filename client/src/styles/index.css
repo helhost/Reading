@@ -35,11 +35,27 @@ body {
   color: var(--text-color);
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   transition: transform 0.1s ease-in-out;
+  position: relative;
 }
 
 .course-box:hover {
   transform: scale(1.01);
   filter: brightness(1.05);
+}
+
+.course-box.has-books .toggle-indicator {
+  display: inline-block;
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: transform .15s ease-in-out;
+  opacity: .9;
+}
+
+.course-box.collapsed .toggle-indicator {
+  transform: rotate(-90deg); /* points right when hidden */
 }
 
 .course-title {
