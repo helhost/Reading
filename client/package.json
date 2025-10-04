@@ -1,0 +1,11 @@
+{
+  "name": "reading-client",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "http-server -p 80 -c-1"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
