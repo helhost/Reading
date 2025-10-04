@@ -34,6 +34,25 @@ class CourseService {
       throw err;
     }
   }
+
+  async delete(id) {
+    const cid = Number(id);
+    if (!Number.isInteger(cid) || cid <= 0) throw new Error("Invalid id");
+
+    try {
+      const res = await fetch(`${this.API_BASE}/courses/${cid}`, {
+        method: "DELETE",
+        headers: { "Accept": "application/json" },
+      });
+
+      if (res.status === 204) return true;       // deleted
+      if (res.status === 404) throw new Error("Course not found");
+      throw new Error(`HTTP ${res.status}`);
+    } catch (err) {
+      console.error("Delete course failed:", err);
+      throw err;
+    }
+  }
 }
 
 const API_BASE = "/api";

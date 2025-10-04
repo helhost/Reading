@@ -340,3 +340,8 @@ func GetBooksByCourseID(db *sql.DB, courseID int64) ([]Item, error) {
 	return out, rows.Err()
 }
 
+
+func DeleteCourse(db *sql.DB, id int64) error {
+  _, err := db.Exec(`DELETE FROM courses WHERE id = ?;`, id)
+  return err
+}

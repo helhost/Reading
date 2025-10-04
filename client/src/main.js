@@ -34,7 +34,6 @@ function drawCourse(course) {
   info.textContent = `Term ${course.term}, ${course.year}`;
 
   const indicator = drawIndicator();
-
   box.append(header, info, indicator);
 
   // books (optional)
@@ -51,6 +50,10 @@ function drawCourse(course) {
 
     booksWrap.appendChild(list);
     box.appendChild(booksWrap);
+  } else {
+    // only show delete when there are NO books
+    const delBtn = deleteCourseButton(course.id, box);
+    box.appendChild(delBtn);
   }
 
   // + Add book
@@ -196,9 +199,14 @@ function handleAddBook(courseId) {
   });
 }
 
+
 function appendBookToUI(courseId, book) {
   const box = document.querySelector(`.course-box[data-course-id="${courseId}"]`);
   if (!box) return;
+
+  // remove course delete button if this was an empty course
+  const delBtn = box.querySelector('.course-delete-btn');
+  if (delBtn) delBtn.remove();
 
   // find or create the books wrapper + list
   let booksWrap = box.querySelector('.books');
@@ -211,7 +219,6 @@ function appendBookToUI(courseId, book) {
     list.classList.add('books-list');
     booksWrap.appendChild(list);
 
-    // place it before the + button if present
     const addBtn = box.querySelector('.add-book-btn');
     if (addBtn) box.insertBefore(booksWrap, addBtn);
     else box.appendChild(booksWrap);
@@ -219,9 +226,9 @@ function appendBookToUI(courseId, book) {
     list = booksWrap.querySelector('.books-list');
   }
 
-  // draw and append the new book
   list.appendChild(drawBook(book));
 }
+
 
 function handleBookMenuClick(bookId, btnEl) {
   openBookMenu({
@@ -235,9 +242,20 @@ function handleBookMenuClick(bookId, btnEl) {
         if (row) {
           const list = row.parentElement; // .books-list
           row.remove();
+
           if (list && list.children.length === 0) {
+            const courseBox = list.closest('.course-box');
+
+            // remove the empty books wrapper
             const wrap = list.closest('.books');
             if (wrap) wrap.remove();
+
+            // now that there are no books, ensure the course delete button is present
+            if (courseBox && !courseBox.querySelector('.course-delete-btn')) {
+              const courseId = courseBox.dataset.courseId;
+              const delBtn = deleteCourseButton(courseId, courseBox);
+              courseBox.appendChild(delBtn);
+            }
           }
         }
         return true;
@@ -248,6 +266,7 @@ function handleBookMenuClick(bookId, btnEl) {
     }
   });
 }
+
 
 function addCourseBtn() {
   const footer = document.createElement('div');
@@ -261,6 +280,19 @@ function addCourseBtn() {
 
   footer.appendChild(addCourseBtn);
   container.appendChild(footer);
+}
+
+
+function deleteCourseButton(courseId, boxEl) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'add-book-btn course-delete-btn';
+  btn.textContent = 'Delete course';
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();              // don’t toggle collapse
+    handleDeleteCourse(courseId, boxEl);
+  });
+  return btn;
 }
 
 
@@ -282,6 +314,26 @@ function handleAddCourse() {
       }
     }
   });
+}
+
+
+async function handleDeleteCourse(courseId, boxEl) {
+  if (!confirm("Delete this course?")) return;
+
+  // optimistic remove
+  const parent = boxEl.parentElement;
+  const nextSibling = boxEl.nextSibling;
+  boxEl.remove();
+
+  try {
+    await courseService.delete(courseId);
+  } catch (err) {
+    console.error("Delete course failed:", err);
+    // rollback on failure
+    if (nextSibling) parent.insertBefore(boxEl, nextSibling);
+    else parent.appendChild(boxEl);
+    alert(err.message || "Delete failed");
+  }
 }
 
 function appendCourseToUI(course) {

@@ -315,9 +315,48 @@ func courseByIDHandler(db *sql.DB) http.HandlerFunc {
         switch r.Method {
         case http.MethodGet:
             getCourseByIDHandler(db)(w, r)
+        case http.MethodDelete:
+            deleteCourseHandler(db)(w, r)
         default:
             http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
         }
+    }
+}
+
+
+// deleteCourseHandler handles DELETE /courses/{id}.
+func deleteCourseHandler(db *sql.DB) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        if r.Method != http.MethodDelete {
+            http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+            return
+        }
+
+        // Extract ID from /courses/{id}
+        parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/courses/"), "/")
+        if len(parts[0]) == 0 {
+            http.Error(w, "missing id", http.StatusBadRequest)
+            return
+        }
+        id, err := strconv.ParseInt(parts[0], 10, 64)
+        if err != nil {
+            http.Error(w, "invalid id", http.StatusBadRequest)
+            return
+        }
+
+        // Optional existence check -> 404 if not found
+        if _, err := GetCourseByID(db, id); err != nil {
+            http.Error(w, "not found", http.StatusNotFound)
+            return
+        }
+
+        // Delete (books will have course_id set to NULL via FK ON DELETE SET NULL)
+        if err := DeleteCourse(db, id); err != nil {
+            http.Error(w, "internal error", http.StatusInternalServerError)
+            return
+        }
+
+        w.WriteHeader(http.StatusNoContent)
     }
 }
 
