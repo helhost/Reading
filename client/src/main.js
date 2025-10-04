@@ -26,12 +26,12 @@ function drawCourse(course) {
   info.classList.add('course-info');
   info.textContent = `Term ${course.term}, ${course.year}`;
 
-  box.appendChild(header);
-  box.appendChild(info);
+  const indicator = drawIndicator();
+
+  box.append(header, info, indicator)
 
   if (Array.isArray(course.books) && course.books.length) {
     box.classList.add('has-books');
-    const indicator = drawIndicator();
     const booksWrap = document.createElement('div');
     booksWrap.classList.add('books');
 
@@ -47,6 +47,17 @@ function drawCourse(course) {
     box.appendChild(indicator);
     box.appendChild(booksWrap);
   }
+
+  // + button
+  const addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.className = 'add-book-btn books-action';
+  addBtn.textContent = '＋ Add book';
+  addBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    handleAddBook(course.id);
+  });
+  box.appendChild(addBtn);
 
   box.addEventListener('click', () => box.classList.toggle('collapsed'));
   return box;
@@ -135,4 +146,8 @@ async function handleChapterClick(bookEl, bookId, n) {
     applyCompletedUI(bookEl, current);
     console.error('Failed to update completedChapters', err);
   }
+}
+
+function handleAddBook(courseId) {
+  console.log('add book clicked', { courseId });
 }

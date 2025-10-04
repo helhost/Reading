@@ -46,7 +46,7 @@ body {
   filter: brightness(1.05);
 }
 
-.course-box.has-books .toggle-indicator {
+.course-box .toggle-indicator {
   display: inline-block;
   position: absolute;
   right: 1rem;
@@ -106,6 +106,26 @@ body {
 }
 
 
+.add-book-btn {
+  margin-top: 0.75rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  border: 1px dashed color-mix(in oklab, var(--text-color) 30%, transparent);
+  background: transparent;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: transform .1s ease-in-out, filter .1s ease-in-out;
+}
+
+.add-book-btn:hover {
+  transform: scale(1.01);
+  filter: brightness(1.05);
+}
+
+/* hide the button when the course is collapsed (like the books) */
+.course-box.collapsed .books-action {
+  display: none;
+}
 
 
 /* ====== Chapters display ====== */
