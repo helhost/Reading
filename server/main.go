@@ -5,40 +5,43 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"example.com/sqlite-server/store"
 )
 
 func main() {
+	// 1. Database setup
 	dbPath := os.Getenv("DB_PATH")
 	if dbPath == "" {
-		dbPath = "data.db" // fallback for local
+		dbPath = "data.db" // default for local dev
 	}
 
 	dsn := "file:" + dbPath + "?_pragma=busy_timeout(5000)"
-	db, err := openDB(dsn)
+	db, err := store.OpenDB(dsn)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to open database:", err)
 	}
 	defer db.Close()
 
-	if err := ensureSchema(db); err != nil {
-		log.Fatal(err)
+	if err := store.EnsureSchema(db); err != nil {
+		log.Fatal("failed to ensure schema:", err)
 	}
 
-	// API routes
+	// 2. API routes
 	apiMux := http.NewServeMux()
 	registerRoutes(apiMux, db)
 
-	// top-level mux
+	// 3. Top-level mux
 	mux := http.NewServeMux()
 
-	// mount API
+	// Mount API under /api
 	mux.Handle("/api/", http.StripPrefix("/api", withCORS(apiMux)))
 
-	// serve static files (client)
+	// Serve static client (if present)
 	fs := http.FileServer(http.Dir("./client"))
 	mux.Handle("/", fs)
 
-
+	// 4. HTTP server configuration
 	srv := &http.Server{
 		Addr:              ":8080",
 		Handler:           mux,
