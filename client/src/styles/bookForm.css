@@ -1,0 +1,111 @@
+.bookform-open { overflow: hidden; }
+
+.bookform-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  z-index: 1000;
+}
+
+.bookform-card {
+  width: min(800px, 92vw);
+  max-height: 90vh;
+  overflow: auto;
+  background: var(--primary-color);
+  color: var(--text-color);
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--text-color) 20%, transparent);
+  box-shadow: 0 20px 60px rgba(0,0,0,.35);
+}
+
+.bookform-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid color-mix(in oklab, var(--text-color) 15%, transparent);
+}
+
+.bookform-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.bookform-close {
+  border: none;
+  background: transparent;
+  color: var(--text-color);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.bookform-body {
+  padding: 1rem 1.25rem;
+}
+
+.book-form {
+  display: grid;
+  gap: .75rem;
+}
+
+.bf-row {
+  display: grid;
+  gap: .35rem;
+}
+
+.bf-label {
+  font-size: .9rem;
+  opacity: .85;
+}
+
+.bf-input {
+  padding: .6rem .7rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in oklab, var(--text-color) 20%, transparent);
+  background: color-mix(in oklab, var(--primary-color) 92%, black 8%);
+  color: var(--text-color);
+}
+
+.bookform-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: .5rem;
+  padding: 0 1.25rem 1rem;
+}
+
+.bf-btn {
+  padding: .55rem .9rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in oklab, var(--text-color) 25%, transparent);
+  background: transparent;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: transform .1s ease-in-out, filter .1s ease-in-out;
+}
+
+.bf-btn:hover {
+  transform: scale(1.01);
+  filter: brightness(1.05);
+}
+
+.bf-btn-primary {
+  background: var(--text-color);
+  color: var(--primary-color);
+  border-color: var(--text-color);
+}
+
+.bf-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bf-btn:disabled:hover {
+  transform: none;
+  filter: none;
+}

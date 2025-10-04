@@ -13,7 +13,57 @@ class BookService {
       throw err;
     }
   }
+
+  async updateCompletedChapters(id, completedChapters) {
+    try {
+      const res = await fetch(`${this.API_BASE}/books/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ completedChapters }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json(); // assuming API returns the updated book
+    } catch (err) {
+      console.error("Update failed:", err);
+      throw err;
+    }
+  }
+
+  async create({ courseId, title, author, numChapters, link }) {
+    try {
+      const res = await fetch(`${this.API_BASE}/books`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: JSON.stringify({ courseId, title, author, numChapters, link }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.error("Create failed:", err);
+      throw err;
+    }
+  }
+
+  async delete(id) {
+    try {
+      const res = await fetch(`${this.API_BASE}/books/${id}`, {
+        method: "DELETE",
+        headers: { "Accept": "application/json" },
+      });
+      // server returns 204 No Content on success
+      if (!res.ok && res.status !== 204) throw new Error(`HTTP ${res.status}`);
+      return true;
+    } catch (err) {
+      console.error("Delete failed:", err);
+      throw err;
+    }
+  }
 }
+
+
 
 const API_BASE = "/api";
 

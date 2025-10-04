@@ -1,3 +1,238 @@
+:root {
+  --bg-color: #f5f0ff;
+  --primary-color: #f8f8f8;
+  --text-color: #111;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #0f002e;
+    --primary-color: #1a103d;
+    --text-color: #f5f5f5;
+  }
+}
+
 body {
-  background-color: green;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+
+/* ====== Course display ====== */
+
+.course-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.course-box {
+  width: 70%;
+  border: 1px solid #ccc;
+  padding: 1rem;
+  border-radius: 10px;
+  background-color: var(--primary-color);
+  color: var(--text-color);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition: transform 0.1s ease-in-out;
+  position: relative;
+}
+
+.course-box:hover {
+  transform: scale(1.01);
+  filter: brightness(1.05);
+}
+
+.course-box .toggle-indicator {
+  display: inline-block;
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: transform .15s ease-in-out;
+  opacity: .9;
+}
+
+.course-box.collapsed .toggle-indicator {
+  transform: rotate(-90deg);
+}
+
+.course-box.collapsed .books {
+  display: none;
+}
+
+.course-box.collapsed .course-delete-btn {
+  display: none;
+}
+
+.course-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.course-info {
+  margin: 0;
+  color: inherit;
+}
+
+.course-footer {
+  width: 70%;
+  display: flex;
+  justify-content: flex-start;
+}
+
+
+/* ====== Books display ====== */
+
+.books {
+  margin-top: .75rem;
+}
+
+.books-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: .4rem;
+}
+
+.book-item {
+  padding: .5rem .75rem;
+  background: none;
+  position: relative;
+  padding-right: 2rem;
+}
+
+.book-title {
+  font-weight: 600;
+  margin: 0 0 .125rem 0;
+}
+
+.book-meta {
+  opacity: .8;
+  font-size: .9rem;
+}
+
+.add-book-btn {
+  margin-top: 0.75rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  border: 1px dashed color-mix(in oklab, var(--text-color) 30%, transparent);
+  background: transparent;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: transform .1s ease-in-out, filter .1s ease-in-out;
+}
+
+.add-book-btn:hover {
+  transform: scale(1.05);
+  filter: brightness(1.05);
+}
+
+.course-box.collapsed .books-action {
+  display: none;
+}
+
+.book-menu-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 32px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-color);
+  opacity: .6;
+  cursor: pointer;
+  transition: opacity .1s ease-in-out, filter .1s ease-in-out;
+}
+
+.book-item:hover .book-menu-btn { opacity: 1; }
+.book-menu-btn:hover { filter: brightness(1.05); }
+
+.book-popover {
+  position: absolute;
+  min-width: 160px;
+  background: var(--primary-color);
+  color: var(--text-color);
+  border: 1px solid color-mix(in oklab, var(--text-color) 20%, transparent);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.35);
+  padding: .25rem;
+  z-index: 2000;
+}
+
+.book-popover-list {
+  display: grid;
+  gap: .25rem;
+}
+
+.book-popover-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: .5rem .75rem;
+  border: none;
+  background: transparent;
+  color: var(--text-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: filter .1s ease-in-out, background .1s ease-in-out;
+}
+
+.book-popover-item:hover {
+  background: color-mix(in oklab, var(--text-color) 8%, transparent);
+  filter: brightness(1.05);
+}
+
+/* ====== Chapter display ====== */
+
+.chapters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.chapter-box {
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,.25);
+  background: color-mix(in oklab, var(--primary-color) 92%, black 8%);
+  color: var(--text-color);
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
+  user-select: none;
+  transition: transform .1s ease-in-out, filter .1s ease-in-out;
+  cursor: pointer;
+}
+
+.chapter-box.completed {
+  background: color-mix(in oklab, var(--text-color) 18%, var(--primary-color) 82%);
+  border-color: color-mix(in oklab, var(--text-color) 35%, transparent);
+  position: relative;
+}
+
+.chapter-box.completed::after {
+  content: "✓";
+  position: absolute;
+  right: 3px;
+  bottom: 2px;
+  font-size: 0.7rem;
+  opacity: 0.85;
+}
+
+.chapter-box:hover {
+  transform: scale(1.20);
+  filter: brightness(1.05);
 }
