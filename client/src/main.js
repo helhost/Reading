@@ -1,5 +1,6 @@
 import courseService from "./services/courses.js";
 import bookService from "./services/books.js";
+import { openBookForm } from "./bookForm.js";
 
 const courses = await courseService.getAll();
 
@@ -17,7 +18,9 @@ for (let course of courses) {
 function drawCourse(course) {
   const box = document.createElement('div');
   box.classList.add('course-box');
+  box.setAttribute('aria-expanded', 'true'); // default open
 
+  // header
   const header = document.createElement('h2');
   header.classList.add('course-title');
   header.textContent = `${course.code}: ${course.name}`;
@@ -28,39 +31,46 @@ function drawCourse(course) {
 
   const indicator = drawIndicator();
 
-  box.append(header, info, indicator)
+  box.append(header, info, indicator);
 
+  // books (optional)
   if (Array.isArray(course.books) && course.books.length) {
-    box.classList.add('has-books');
     const booksWrap = document.createElement('div');
     booksWrap.classList.add('books');
 
     const list = document.createElement('ul');
     list.classList.add('books-list');
 
-    for (let book of course.books) {
-      const li = drawBook(book);
-      list.appendChild(li);
+    for (const book of course.books) {
+      list.appendChild(drawBook(book));
     }
 
     booksWrap.appendChild(list);
-    box.appendChild(indicator);
     box.appendChild(booksWrap);
   }
 
-  // + button
-  const addBtn = document.createElement('button');
-  addBtn.type = 'button';
-  addBtn.className = 'add-book-btn books-action';
-  addBtn.textContent = '＋ Add book';
-  addBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    handleAddBook(course.id);
-  });
-  box.appendChild(addBtn);
+  // + Add book
+  box.appendChild(drawAddBookButton(course.id));
 
-  box.addEventListener('click', () => box.classList.toggle('collapsed'));
+  // toggle open/closed
+  box.addEventListener('click', () => {
+    const isCollapsed = box.classList.toggle('collapsed');
+    box.setAttribute('aria-expanded', String(!isCollapsed));
+  });
+
   return box;
+}
+
+function drawAddBookButton(courseId) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'add-book-btn books-action';
+  btn.textContent = '＋ Add book';
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    handleAddBook(courseId);
+  });
+  return btn;
 }
 
 function drawBook(book) {
@@ -149,5 +159,10 @@ async function handleChapterClick(bookEl, bookId, n) {
 }
 
 function handleAddBook(courseId) {
-  console.log('add book clicked', { courseId });
+  openBookForm(courseId, {
+    onSubmit: (data, { close }) => {
+      console.log('create book (preview):', data);
+      close();
+    }
+  });
 }
