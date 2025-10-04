@@ -1,6 +1,8 @@
-import bookService from "./services/books.js"
+import bookService from "./services/books.js";
+import courseService from "./services/courses.js";
 
-let a = await bookService.getAll()
-console.log(a)
+const books = await bookService.getAll();
+const courses = await courseService.getAll(); // note to self, should change courses.getAll() to also give me all the books under that has it
+console.log(courses, books)
 
 
