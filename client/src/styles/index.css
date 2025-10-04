@@ -146,3 +146,14 @@ body {
   font-size: 0.7rem;
   opacity: 0.85;
 }
+
+
+.chapter-box {
+  transition: transform .1s ease-in-out, filter .1s ease-in-out;
+  cursor: pointer;
+}
+
+.chapter-box:hover {
+  transform: scale(1.20);
+  filter: brightness(1.05);
+}

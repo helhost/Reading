@@ -13,6 +13,21 @@ class BookService {
       throw err;
     }
   }
+
+  async updateCompletedChapters(id, completedChapters) {
+    try {
+      const res = await fetch(`${this.API_BASE}/books/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ completedChapters }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json(); // assuming API returns the updated book
+    } catch (err) {
+      console.error("Update failed:", err);
+      throw err;
+    }
+  }
 }
 
 const API_BASE = "/api";
