@@ -28,7 +28,27 @@ class BookService {
       throw err;
     }
   }
+
+  async create({ courseId, title, author, numChapters, link }) {
+    try {
+      const res = await fetch(`${this.API_BASE}/books`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: JSON.stringify({ courseId, title, author, numChapters, link }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.error("Create failed:", err);
+      throw err;
+    }
+  }
 }
+
+
 
 const API_BASE = "/api";
 

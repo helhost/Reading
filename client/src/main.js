@@ -160,9 +160,29 @@ async function handleChapterClick(bookEl, bookId, n) {
 
 function handleAddBook(courseId) {
   openBookForm(courseId, {
-    onSubmit: (data, { close }) => {
-      console.log('create book (preview):', data);
-      close();
+    onSubmit: async (data, { close }) => {
+      // Coerce & validate
+      const numChapters = Number(data.numChapters);
+      if (!Number.isFinite(numChapters) || numChapters < 0) {
+        console.error('Invalid numChapters:', data.numChapters);
+        return; // or show a message
+      }
+
+      const payload = {
+        courseId,
+        title: data.title,
+        author: data.author,
+        numChapters,                     // <- number, not string
+        ...(data.link && data.link.trim() ? { link: data.link.trim() } : {}),
+      };
+
+      try {
+        const created = await bookService.create(payload);
+        console.log('created book:', created);
+        close();
+      } catch (err) {
+        console.error('Create failed:', err);
+      }
     }
   });
 }
