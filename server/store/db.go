@@ -46,6 +46,15 @@ func EnsureSchema(db *sql.DB) error {
 			course_id          INTEGER,
 			FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE SET NULL
 		);
+
+		CREATE TABLE IF NOT EXISTS sessions (
+			id         TEXT PRIMARY KEY,                      -- opaque random token
+			user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+			expires_at INTEGER NOT NULL
+		);
+		CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+		CREATE INDEX IF NOT EXISTS idx_sessions_exp  ON sessions(expires_at);
 	`)
 	return err
 }

@@ -31,3 +31,15 @@ func GetUserByEmail(db *sql.DB, email string) (User, error) {
 	`, email).Scan(&u.ID, &u.Email, &u.Password, &u.CreatedAt)
 	return u, err
 }
+
+
+// GetUserByID returns a user by their ID.
+func GetUserByID(db *sql.DB, id string) (User, error) {
+	var u User
+	err := db.QueryRow(`
+		SELECT id, email, password, created_at
+		FROM users
+		WHERE id = ?;
+	`, id).Scan(&u.ID, &u.Email, &u.Password, &u.CreatedAt)
+	return u, err
+}

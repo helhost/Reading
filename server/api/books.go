@@ -10,6 +10,10 @@ import (
 	"example.com/sqlite-server/store"
 )
 
+func RegisterBookRoutes(mux *http.ServeMux, db *sql.DB) {
+	mux.HandleFunc("/books", booksHandler(db))
+	mux.HandleFunc("/books/", bookByIDHandler(db))
+}
 
 func booksHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -216,9 +220,3 @@ func deleteBookHandler(db *sql.DB) http.HandlerFunc {
 	}
 }
 
-
-
-func RegisterBookRoutes(mux *http.ServeMux, db *sql.DB) {
-	mux.HandleFunc("/books", booksHandler(db))
-	mux.HandleFunc("/books/", bookByIDHandler(db))
-}

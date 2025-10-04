@@ -10,6 +10,11 @@ import (
 	"example.com/sqlite-server/store"
 )
 
+func RegisterCourseRoutes(mux *http.ServeMux, db *sql.DB) {
+	mux.HandleFunc("/courses", coursesHandler(db))
+	mux.HandleFunc("/courses/", courseByIDHandler(db))
+}
+
 func coursesHandler(db *sql.DB) http.HandlerFunc {
     return func(w http.ResponseWriter, r *http.Request) {
         switch r.Method {
@@ -153,9 +158,3 @@ func getCourseByIDHandler(db *sql.DB) http.HandlerFunc {
     }
 }
 
-
-
-func RegisterCourseRoutes(mux *http.ServeMux, db *sql.DB) {
-	mux.HandleFunc("/courses", coursesHandler(db))
-	mux.HandleFunc("/courses/", courseByIDHandler(db))
-}
