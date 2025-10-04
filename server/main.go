@@ -3,12 +3,18 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
 func main() {
-	// open DB + ensure schema
-	db, err := openDB("file:data.db?_pragma=busy_timeout(5000)")
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "data.db" // fallback for local
+	}
+
+	dsn := "file:" + dbPath + "?_pragma=busy_timeout(5000)"
+	db, err := openDB(dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -18,17 +24,24 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// wire routes
+	// API routes
+	apiMux := http.NewServeMux()
+	registerRoutes(apiMux, db)
+
+	// top-level mux
 	mux := http.NewServeMux()
-	registerRoutes(mux, db)
 
-	// wrap with CORS middleware
-	handler := withCORS(mux)
+	// mount API
+	mux.Handle("/api/", http.StripPrefix("/api", withCORS(apiMux)))
 
-	// start server
+	// serve static files (client)
+	fs := http.FileServer(http.Dir("./client"))
+	mux.Handle("/", fs)
+
+
 	srv := &http.Server{
 		Addr:              ":8080",
-		Handler:           handler,
+		Handler:           mux,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
