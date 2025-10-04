@@ -1,0 +1,28 @@
+app = "ucl-reading"
+primary_region = "fra"
+
+[env]
+  DB_PATH = "/data/data.db"
+  ALLOW_ORIGIN = "https://ucl.etterdal.com"
+
+[[mounts]]
+  source = "data"
+  destination = "/data"
+
+[[services]]
+  internal_port = 8080
+  protocol = "tcp"
+  processes = ["app"]
+
+  [[services.ports]]
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+[[vm]]
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1
