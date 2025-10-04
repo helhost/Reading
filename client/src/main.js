@@ -2,6 +2,7 @@ import courseService from "./services/courses.js";
 import bookService from "./services/books.js";
 import { openBookForm } from "./bookForm.js";
 import { openBookMenu } from './bookMenu.js';
+import { openCourseForm } from "./courseForm.js";
 
 const courses = await courseService.getAll();
 
@@ -14,6 +15,7 @@ for (let course of courses) {
   const box = drawCourse(course);
   container.appendChild(box);
 }
+addCourseBtn()
 
 
 function drawCourse(course) {
@@ -245,4 +247,46 @@ function handleBookMenuClick(bookId, btnEl) {
       }
     }
   });
+}
+
+function addCourseBtn() {
+  const footer = document.createElement('div');
+  footer.className = 'course-footer';
+
+  const addCourseBtn = document.createElement('button');
+  addCourseBtn.type = 'button';
+  addCourseBtn.className = 'add-book-btn add-course-btn';
+  addCourseBtn.textContent = '＋ Add course';
+  addCourseBtn.addEventListener('click', () => handleAddCourse());
+
+  footer.appendChild(addCourseBtn);
+  container.appendChild(footer);
+}
+
+
+function handleAddCourse() {
+  openCourseForm({
+    onSubmit: async (data, { close }) => {
+      try {
+        const payload = {
+          year: Number(data.year),
+          term: Number(data.term),
+          code: data.code,
+          name: data.name,
+        };
+        const created = await courseService.create(payload);
+        appendCourseToUI(created);
+        close();
+      } catch (err) {
+        console.error('Create course failed:', err);
+      }
+    }
+  });
+}
+
+function appendCourseToUI(course) {
+  const box = drawCourse({ ...course, books: course.books || [] });
+  const footer = container.querySelector('.course-footer');
+  if (footer) container.insertBefore(box, footer);
+  else container.appendChild(box);
 }

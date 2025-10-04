@@ -75,6 +75,12 @@ body {
   color: inherit;
 }
 
+.course-footer {
+  width: 70%;
+  display: flex;
+  justify-content: flex-start;
+}
+
 
 /* ====== Books display ====== */
 

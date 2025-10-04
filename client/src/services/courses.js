@@ -13,6 +13,27 @@ class CourseService {
       throw err;
     }
   }
+
+  async create({ year, term, code, name }) {
+    const y = Number(year);
+    const t = Number(term);
+    if (!Number.isFinite(y) || y <= 0) throw new Error("Invalid year");
+    if (!Number.isFinite(t) || t <= 0) throw new Error("Invalid term");
+    if (!code?.trim() || !name?.trim()) throw new Error("Code and name required");
+
+    try {
+      const res = await fetch(`${this.API_BASE}/courses`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ year: y, term: t, code: code.trim(), name: name.trim() }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json(); // created course
+    } catch (err) {
+      console.error("Create course failed:", err);
+      throw err;
+    }
+  }
 }
 
 const API_BASE = "/api";
