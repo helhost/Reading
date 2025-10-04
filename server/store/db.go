@@ -20,6 +20,8 @@ func OpenDB(dsn string) (*sql.DB, error) {
 
 func EnsureSchema(db *sql.DB) error {
 	_, err := db.Exec(`
+		PRAGMA foreign_keys = ON;
+
 		CREATE TABLE IF NOT EXISTS users (
 			id         TEXT PRIMARY KEY,                     -- UUID
 			email      TEXT NOT NULL UNIQUE,
@@ -28,16 +30,21 @@ func EnsureSchema(db *sql.DB) error {
 		);
 
 		CREATE TABLE IF NOT EXISTS courses (
-			id    INTEGER PRIMARY KEY AUTOINCREMENT,
-			year  INTEGER NOT NULL CHECK (year BETWEEN 1900 AND 2100),
-			term  INTEGER NOT NULL CHECK (term IN (1,2,3,4)),
-			code  TEXT NOT NULL,
-			name  TEXT NOT NULL,
-			UNIQUE (year, term, code)
+			id       INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			year     INTEGER NOT NULL CHECK (year BETWEEN 1900 AND 2100),
+			term     INTEGER NOT NULL CHECK (term IN (1,2,3,4)),
+			code     TEXT NOT NULL,
+			name     TEXT NOT NULL,
+			-- uniqueness is per-user
+			UNIQUE (user_id, year, term, code)
 		);
+
+		CREATE INDEX IF NOT EXISTS idx_courses_user ON courses(user_id);
 
 		CREATE TABLE IF NOT EXISTS books (
 			id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id            TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			title              TEXT NOT NULL,
 			author             TEXT NOT NULL,
 			numChapters        INTEGER,
@@ -46,6 +53,9 @@ func EnsureSchema(db *sql.DB) error {
 			course_id          INTEGER,
 			FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE SET NULL
 		);
+
+		CREATE INDEX IF NOT EXISTS idx_books_user ON books(user_id);
+		CREATE INDEX IF NOT EXISTS idx_books_user_course ON books(user_id, course_id);
 
 		CREATE TABLE IF NOT EXISTS sessions (
 			id         TEXT PRIMARY KEY,                      -- opaque random token
