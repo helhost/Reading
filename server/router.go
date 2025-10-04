@@ -78,7 +78,7 @@ func registerRoutes(mux *http.ServeMux, db *sql.DB) {
 	// delegate resource-specific routes to the api package
 	api.RegisterBookRoutes(mux, db)
 	api.RegisterCourseRoutes(mux, db)
-	// api.RegisterAuthRoutes(mux, db)
+	api.RegisterAuthRoutes(mux, db)
 }
 
 // -----------------------------------------------------------
