@@ -18,6 +18,7 @@ for (let course of courses) {
 function drawCourse(course) {
   const box = document.createElement('div');
   box.classList.add('course-box');
+  box.dataset.courseId = course.id;
   box.setAttribute('aria-expanded', 'true'); // default open
 
   // header
@@ -158,31 +159,52 @@ async function handleChapterClick(bookEl, bookId, n) {
   }
 }
 
+
 function handleAddBook(courseId) {
   openBookForm(courseId, {
     onSubmit: async (data, { close }) => {
-      // Coerce & validate
-      const numChapters = Number(data.numChapters);
-      if (!Number.isFinite(numChapters) || numChapters < 0) {
-        console.error('Invalid numChapters:', data.numChapters);
-        return; // or show a message
-      }
-
-      const payload = {
-        courseId,
-        title: data.title,
-        author: data.author,
-        numChapters,                     // <- number, not string
-        ...(data.link && data.link.trim() ? { link: data.link.trim() } : {}),
-      };
-
       try {
+        const numChapters = Number(data.numChapters);
+        const payload = {
+          courseId,
+          title: data.title,
+          author: data.author,
+          numChapters,
+          ...(data.link && data.link.trim() ? { link: data.link.trim() } : {}),
+        };
         const created = await bookService.create(payload);
-        console.log('created book:', created);
+        appendBookToUI(courseId, created);   // <— update UI
         close();
       } catch (err) {
         console.error('Create failed:', err);
       }
     }
   });
+}
+
+function appendBookToUI(courseId, book) {
+  const box = document.querySelector(`.course-box[data-course-id="${courseId}"]`);
+  if (!box) return;
+
+  // find or create the books wrapper + list
+  let booksWrap = box.querySelector('.books');
+  let list;
+  if (!booksWrap) {
+    booksWrap = document.createElement('div');
+    booksWrap.classList.add('books');
+
+    list = document.createElement('ul');
+    list.classList.add('books-list');
+    booksWrap.appendChild(list);
+
+    // place it before the + button if present
+    const addBtn = box.querySelector('.add-book-btn');
+    if (addBtn) box.insertBefore(booksWrap, addBtn);
+    else box.appendChild(booksWrap);
+  } else {
+    list = booksWrap.querySelector('.books-list');
+  }
+
+  // draw and append the new book
+  list.appendChild(drawBook(book));
 }
