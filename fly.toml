@@ -4,7 +4,7 @@ primary_region = "fra"
 [env]
   DB_PATH = "/data/data.db"
   ALLOW_ORIGIN = "https://ucl.etterdal.com"
-  ENV = "PROD"
+  ENV = "prod"
 
 [[mounts]]
   source = "data"
