@@ -1,6 +1,7 @@
 import courseService from "./services/courses.js";
 import bookService from "./services/books.js";
 import { openBookForm } from "./bookForm.js";
+import { openBookMenu } from './bookMenu.js';
 
 const courses = await courseService.getAll();
 
@@ -92,7 +93,18 @@ function drawBook(book) {
   meta.textContent = `${book.author} • ${book.numChapters} chapters`;
 
   const chapters = drawChapters(book); // unchanged call-site
-  li.append(title, meta, chapters);
+
+  const more = document.createElement('button');
+  more.type = 'button';
+  more.className = 'book-menu-btn';
+  more.textContent = '⋯';              // U+22EF
+  more.addEventListener('click', (e) => {
+    e.stopPropagation();               // don’t collapse the course
+    handleBookMenuClick(book.id, more);
+  });
+
+  li.append(title, meta, chapters, more);
+
   return li;
 }
 
@@ -207,4 +219,30 @@ function appendBookToUI(courseId, book) {
 
   // draw and append the new book
   list.appendChild(drawBook(book));
+}
+
+function handleBookMenuClick(bookId, btnEl) {
+  openBookMenu({
+    bookId,
+    anchorEl: btnEl,
+    onDelete: async (id) => {
+      try {
+        await bookService.delete(id);
+
+        const row = btnEl.closest('.book-item');
+        if (row) {
+          const list = row.parentElement; // .books-list
+          row.remove();
+          if (list && list.children.length === 0) {
+            const wrap = list.closest('.books');
+            if (wrap) wrap.remove();
+          }
+        }
+        return true;
+      } catch (e) {
+        console.error('Delete failed:', e);
+        return false;
+      }
+    }
+  });
 }

@@ -46,6 +46,21 @@ class BookService {
       throw err;
     }
   }
+
+  async delete(id) {
+    try {
+      const res = await fetch(`${this.API_BASE}/books/${id}`, {
+        method: "DELETE",
+        headers: { "Accept": "application/json" },
+      });
+      // server returns 204 No Content on success
+      if (!res.ok && res.status !== 204) throw new Error(`HTTP ${res.status}`);
+      return true;
+    } catch (err) {
+      console.error("Delete failed:", err);
+      throw err;
+    }
+  }
 }
 
 
