@@ -20,9 +20,9 @@ addCourseBtn()
 
 function drawCourse(course) {
   const box = document.createElement('div');
-  box.classList.add('course-box');
+  box.classList.add('course-box', 'collapsed');
   box.dataset.courseId = course.id;
-  box.setAttribute('aria-expanded', 'true'); // default open
+  box.setAttribute('aria-expanded', 'false'); // default closed
 
   // header
   const header = document.createElement('h2');
