@@ -14,17 +14,32 @@ class BookService {
     }
   }
 
-  async updateCompletedChapters(id, completedChapters) {
+  async addProgress(id, chapter) {
     try {
-      const res = await fetch(`${this.API_BASE}/books/${id}`, {
+      const res = await fetch(`${this.API_BASE}/books/${id}/progress`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        body: JSON.stringify({ completedChapters }),
+        body: JSON.stringify({ chapter, action: "add" }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json(); // assuming API returns the updated book
+      return await res.json(); // returns []int of completed chapters
     } catch (err) {
-      console.error("Update failed:", err);
+      console.error("Add progress failed:", err);
+      throw err;
+    }
+  }
+
+  async removeProgress(id, chapter) {
+    try {
+      const res = await fetch(`${this.API_BASE}/books/${id}/progress`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ chapter, action: "remove" }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json(); // returns []int of completed chapters
+    } catch (err) {
+      console.error("Remove progress failed:", err);
       throw err;
     }
   }
@@ -53,7 +68,6 @@ class BookService {
         method: "DELETE",
         headers: { "Accept": "application/json" },
       });
-      // server returns 204 No Content on success
       if (!res.ok && res.status !== 204) throw new Error(`HTTP ${res.status}`);
       return true;
     } catch (err) {
@@ -63,9 +77,6 @@ class BookService {
   }
 }
 
-
-
 const API_BASE = "/api";
-
 const bookService = new BookService(API_BASE);
 export default bookService;
