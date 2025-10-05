@@ -25,7 +25,7 @@ func EnsureSchema(db *sql.DB) error {
 		CREATE TABLE IF NOT EXISTS users (
 			id         TEXT PRIMARY KEY,                     -- UUID
 			email      TEXT NOT NULL UNIQUE,
-			password   TEXT NOT NULL,                        -- bcrypt or argon2 hash
+			password   TEXT NOT NULL,                        -- bcrypt
 			created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
 		);
 
@@ -48,7 +48,6 @@ func EnsureSchema(db *sql.DB) error {
 			title              TEXT NOT NULL,
 			author             TEXT NOT NULL,
 			numChapters        INTEGER,
-			completedChapters  INTEGER,
 			link               TEXT,
 			course_id          INTEGER,
 			FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE SET NULL
@@ -56,6 +55,13 @@ func EnsureSchema(db *sql.DB) error {
 
 		CREATE INDEX IF NOT EXISTS idx_books_user ON books(user_id);
 		CREATE INDEX IF NOT EXISTS idx_books_user_course ON books(user_id, course_id);
+
+
+		CREATE TABLE IF NOT EXISTS progress (
+				book_id       INTEGER NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+				chapter_index INTEGER NOT NULL CHECK (chapter_index >= 1),
+				PRIMARY KEY (book_id, chapter_index)
+		);
 
 		CREATE TABLE IF NOT EXISTS sessions (
 			id         TEXT PRIMARY KEY,                      -- opaque random token

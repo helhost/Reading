@@ -6,7 +6,6 @@ import { openCourseForm } from "./courseForm.js";
 
 const courses = await courseService.getAll();
 
-
 const container = document.createElement('div');
 container.classList.add('course-container');
 document.body.appendChild(container);
@@ -15,8 +14,41 @@ for (let course of courses) {
   const box = drawCourse(course);
   container.appendChild(box);
 }
-addCourseBtn()
+addCourseBtn();
 
+// ---- helpers for completedChapters ([]int) ----
+
+function coerceArray(v) {
+  if (!v) return [];
+  if (Array.isArray(v)) return v.map(Number).filter(n => Number.isFinite(n));
+  if (typeof v === 'string') {
+    if (v.trim() === '') return [];
+    return v.split(',').map(s => Number(s.trim())).filter(n => Number.isFinite(n));
+  }
+  return [];
+}
+
+function getCompletedFromEl(bookEl) {
+  try {
+    const raw = bookEl.dataset.completedChapters || "[]";
+    // dataset stores JSON string
+    const arr = JSON.parse(raw);
+    return coerceArray(arr);
+  } catch {
+    // fallback if someone stuffed a CSV in there
+    return coerceArray(bookEl.dataset.completedChapters);
+  }
+}
+
+function setCompletedOnEl(bookEl, arr) {
+  const uniqSorted = Array.from(new Set(arr.map(Number)))
+    .filter(n => Number.isFinite(n) && n > 0)
+    .sort((a, b) => a - b);
+  bookEl.dataset.completedChapters = JSON.stringify(uniqSorted);
+  applyCompletedUI(bookEl, uniqSorted);
+}
+
+// -----------------------------------------------
 
 function drawCourse(course) {
   const box = document.createElement('div');
@@ -86,8 +118,9 @@ function drawBook(book) {
 
   // state for this book (used by click handler)
   li.dataset.bookId = book.id;
-  li.dataset.completed = String(book.completedChapters || 0);
   li.dataset.numChapters = String(book.numChapters);
+  // store as JSON array string for stability
+  li.dataset.completedChapters = JSON.stringify(book.completedChapters ?? []);
 
   const title = document.createElement('div');
   title.classList.add('book-title');
@@ -95,9 +128,10 @@ function drawBook(book) {
 
   const meta = document.createElement('div');
   meta.classList.add('book-meta');
+  // keep existing copy; you can change to "X • Y chapters" later if desired
   meta.textContent = `${book.author} • ${book.numChapters} chapters`;
 
-  const chapters = drawChapters(book); // unchanged call-site
+  const chapters = drawChapters(book);
 
   const more = document.createElement('button');
   more.type = 'button';
@@ -113,18 +147,17 @@ function drawBook(book) {
   return li;
 }
 
-
 function drawChapters(book) {
   const wrap = document.createElement('div');
   wrap.classList.add('chapters');
 
-  const current = book.completedChapters || 0;
+  const completed = new Set(coerceArray(book.completedChapters));
 
   for (let i = 1; i <= book.numChapters; i++) {
     const ch = document.createElement('div');
     ch.classList.add('chapter-box');
     ch.textContent = i;
-    if (i <= current) ch.classList.add('completed');
+    if (completed.has(i)) ch.classList.add('completed');
 
     ch.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -144,38 +177,38 @@ function drawIndicator() {
   return span;
 }
 
-
-function applyCompletedUI(bookEl, completed) {
+// Update UI classes based on completed array
+function applyCompletedUI(bookEl, completedArr) {
+  const completed = new Set(coerceArray(completedArr));
   const boxes = bookEl.querySelectorAll('.chapter-box');
-  boxes.forEach((box, idx) => {
-    if (idx < completed) box.classList.add('completed');
+  boxes.forEach((box) => {
+    const n = Number(box.textContent);
+    if (completed.has(n)) box.classList.add('completed');
     else box.classList.remove('completed');
   });
-  bookEl.dataset.completed = String(completed);
 }
 
 async function handleChapterClick(bookEl, bookId, n) {
-  const current = Number(bookEl.dataset.completed || 0);
-  const next = (n === current) ? 0 : n;
+  const before = getCompletedFromEl(bookEl);
+  const has = before.includes(n);
+  const optimistic = has ? before.filter(x => x !== n) : [...before, n];
 
   // optimistic UI
-  applyCompletedUI(bookEl, next);
+  setCompletedOnEl(bookEl, optimistic);
 
   try {
-    const updated = await bookService.updateCompletedChapters(bookId, next);
-    const confirmed = Number(
-      (updated && updated.completedChapters) != null
-        ? updated.completedChapters
-        : next
-    );
-    applyCompletedUI(bookEl, confirmed); // ensure UI matches server
+    const after = has
+      ? await bookService.removeProgress(bookId, n)
+      : await bookService.addProgress(bookId, n);
+
+    // server returns []int; trust it
+    setCompletedOnEl(bookEl, after ?? optimistic);
   } catch (err) {
     // rollback
-    applyCompletedUI(bookEl, current);
-    console.error('Failed to update completedChapters', err);
+    setCompletedOnEl(bookEl, before);
+    console.error('Failed to toggle chapter', err);
   }
 }
-
 
 function handleAddBook(courseId) {
   openBookForm(courseId, {
@@ -190,7 +223,9 @@ function handleAddBook(courseId) {
           ...(data.link && data.link.trim() ? { link: data.link.trim() } : {}),
         };
         const created = await bookService.create(payload);
-        appendBookToUI(courseId, created);   // <— update UI
+        // ensure completedChapters is an array for new items
+        created.completedChapters = created.completedChapters ?? [];
+        appendBookToUI(courseId, created);
         close();
       } catch (err) {
         console.error('Create failed:', err);
@@ -198,7 +233,6 @@ function handleAddBook(courseId) {
     }
   });
 }
-
 
 function appendBookToUI(courseId, book) {
   const box = document.querySelector(`.course-box[data-course-id="${courseId}"]`);
@@ -228,7 +262,6 @@ function appendBookToUI(courseId, book) {
 
   list.appendChild(drawBook(book));
 }
-
 
 function handleBookMenuClick(bookId, btnEl) {
   openBookMenu({
@@ -267,7 +300,6 @@ function handleBookMenuClick(bookId, btnEl) {
   });
 }
 
-
 function addCourseBtn() {
   const footer = document.createElement('div');
   footer.className = 'course-footer';
@@ -282,7 +314,6 @@ function addCourseBtn() {
   container.appendChild(footer);
 }
 
-
 function deleteCourseButton(courseId, boxEl) {
   const btn = document.createElement('button');
   btn.type = 'button';
@@ -294,7 +325,6 @@ function deleteCourseButton(courseId, boxEl) {
   });
   return btn;
 }
-
 
 function handleAddCourse() {
   openCourseForm({
@@ -315,7 +345,6 @@ function handleAddCourse() {
     }
   });
 }
-
 
 async function handleDeleteCourse(courseId, boxEl) {
   if (!confirm("Delete this course?")) return;
