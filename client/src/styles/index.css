@@ -290,7 +290,6 @@ body {
 
 /* ====== User bar ====== */
 .userbar {
-  width: 100%;
   margin-bottom: 1rem;
   display: flex;
   justify-content: space-between;
@@ -302,14 +301,13 @@ body {
 }
 
 .userbar__left { font-weight: 400; }
-.userbar__right { display: flex; gap: .5rem; padding-right: 2rem; }
-
+.userbar__right { display: flex; gap: .5rem; }
 
 
 @media (max-width: 600px) {
   .course-box,
   .course-footer {
-    width: 100%;
+    width: 90%;
   }
 }
 
