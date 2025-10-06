@@ -29,6 +29,8 @@ func assignmentsHandler(db *sql.DB) http.HandlerFunc {
 			postAssignmentHandler(db)(w, r)
 		case http.MethodGet:
 			getAssignmentsForCourseHandler(db)(w, r)
+		case http.MethodDelete:
+			deleteAssignmentHandler(db)(w, r)
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
@@ -318,5 +320,65 @@ func patchAssignmentProgressHandler(db *sql.DB, assignmentID int64) http.Handler
 		}
 
 		util.WriteJSON(w, resp{Completed: *p.Completed}, http.StatusOK)
+	}
+}
+
+
+// DELETE /assignments
+// Body: { "assignmentId": number }
+// Auth: must be enrolled in the assignment's course.
+// 204 if deleted; 404 if not found; 409 if any user has completed it.
+func deleteAssignmentHandler(db *sql.DB) http.HandlerFunc {
+	type payload struct {
+		AssignmentID int64 `json:"assignmentId"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		var p payload
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&p); err != nil || p.AssignmentID <= 0 {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+
+		uid, ok := session.UserIDFromCtx(r.Context())
+		if !ok {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		// Must be enrolled in owning course
+		enrolled, err := UserEnrolledInAssignmentCourse(db, uid, p.AssignmentID)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		if !enrolled {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+
+		deleted, derr := DeleteAssignmentIfNoProgress(db, p.AssignmentID)
+		if derr != nil {
+			switch {
+			case derr == sql.ErrNoRows:
+				http.Error(w, "not found", http.StatusNotFound)
+				return
+			case strings.Contains(strings.ToLower(derr.Error()), "invalid input"):
+				http.Error(w, "invalid input", http.StatusBadRequest)
+				return
+			case strings.Contains(strings.ToLower(derr.Error()), "has progress"):
+				http.Error(w, "conflict: assignment has progress", http.StatusConflict)
+				return
+			default:
+				http.Error(w, "internal error", http.StatusInternalServerError)
+				return
+			}
+		}
+		if !deleted {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
 	}
 }

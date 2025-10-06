@@ -170,3 +170,38 @@ func ListAssignmentsByCourseWithProgress(db *sql.DB, courseID int64, userID stri
 	}
 	return out, rows.Err()
 }
+
+
+// DeleteAssignmentIfNoProgress deletes the assignment iff it exists and
+// no user has a completion row for it. Returns (false, sql.ErrNoRows) if missing.
+func DeleteAssignmentIfNoProgress(db *sql.DB, assignmentID int64) (bool, error) {
+	if assignmentID <= 0 {
+		return false, errors.New("invalid input")
+	}
+
+	// Ensure it exists
+	var exists int64
+	if err := db.QueryRow(`SELECT id FROM assignments WHERE id = ?`, assignmentID).Scan(&exists); err != nil {
+		if err == sql.ErrNoRows {
+			return false, sql.ErrNoRows
+		}
+		return false, err
+	}
+
+	// Block if anyone has progress
+	var cnt int64
+	if err := db.QueryRow(`SELECT COUNT(1) FROM progress WHERE assignment_id = ?`, assignmentID).Scan(&cnt); err != nil {
+		return false, err
+	}
+	if cnt > 0 {
+		return false, errors.New("assignment has progress")
+	}
+
+	// Safe to delete
+	res, err := db.Exec(`DELETE FROM assignments WHERE id = ?`, assignmentID)
+	if err != nil {
+		return false, err
+	}
+	n, _ := res.RowsAffected()
+	return n > 0, nil
+}
