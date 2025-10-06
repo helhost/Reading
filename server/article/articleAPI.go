@@ -25,6 +25,8 @@ func articlesHandler(db *sql.DB) http.HandlerFunc {
 		switch r.Method {
 		case http.MethodPost:
 			postArticleHandler(db)(w, r)
+		case http.MethodGet:
+			getArticlesForCourseHandler(db)(w, r)
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
@@ -196,5 +198,47 @@ func patchArticleDeadlineHandler(db *sql.DB, articleID int64) http.HandlerFunc {
 		}
 
 		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+
+func getArticlesForCourseHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		uid, ok := session.UserIDFromCtx(r.Context())
+		if !ok {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		courseID, err := util.ParseInt64Query(r, "courseId")
+		if err != nil || courseID <= 0 {
+			http.Error(w, "courseId is required", http.StatusBadRequest)
+			return
+		}
+
+		uniID, err := enrollment.CourseUniversity(db, courseID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				http.Error(w, "course not found", http.StatusBadRequest)
+				return
+			}
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		isMember, err := membership.IsMember(db, uid, uniID)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		if !isMember {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+
+		list, err := ListArticlesByCourse(db, courseID)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		util.WriteJSON(w, list, http.StatusOK)
 	}
 }

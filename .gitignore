@@ -3,4 +3,5 @@ server/data.db
 node_modules
 
 # Testing
-cookies.txt
+alice.txt
+bob.txt

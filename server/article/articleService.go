@@ -63,3 +63,42 @@ func AddArticle(db *sql.DB, courseID int64, title, author string, location *stri
 	// a.Deadline remains nil
 	return a, nil
 }
+
+
+// ListArticlesByCourse returns all articles for a course (including nullable deadline).
+func ListArticlesByCourse(db *sql.DB, courseID int64) ([]Article, error) {
+	if courseID <= 0 {
+		return []Article{}, nil
+	}
+
+	rows, err := db.Query(`
+		SELECT id, course_id, title, author, location, deadline
+		  FROM articles
+		 WHERE course_id = ?
+		 ORDER BY id ASC
+	`, courseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := make([]Article, 0, 32)
+	for rows.Next() {
+		var a Article
+		var loc sql.NullString
+		var dl  sql.NullInt64
+		if err := rows.Scan(&a.ID, &a.CourseID, &a.Title, &a.Author, &loc, &dl); err != nil {
+			return nil, err
+		}
+		if loc.Valid {
+			v := loc.String
+			a.Location = &v
+		}
+		if dl.Valid {
+			v := dl.Int64
+			a.Deadline = &v
+		}
+		out = append(out, a)
+	}
+	return out, rows.Err()
+}
