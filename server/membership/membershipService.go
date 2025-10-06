@@ -93,3 +93,22 @@ func ListMemberships(db *sql.DB, userID string) ([]MembershipView, error) {
   }
   return out, rows.Err()
 }
+
+
+// IsMember reports whether userID is a member of universityID.
+func IsMember(db *sql.DB, userID, universityID string) (bool, error) {
+	var x int
+	err := db.QueryRow(`
+		SELECT 1
+		  FROM user_universities
+		 WHERE user_id = ? AND university_id = ?
+		 LIMIT 1
+	`, userID, universityID).Scan(&x)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
