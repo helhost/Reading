@@ -122,3 +122,23 @@ func ListByBooks(db *sql.DB, bookIDs []int64) (map[int64][]Chapter, error) {
 	}
 	return m, rows.Err()
 }
+
+func GetChapter(db *sql.DB, id int64) (Chapter, error) {
+	var c Chapter
+	var dl sql.NullInt64
+	err := db.QueryRow(`
+		SELECT id, book_id, chapter_num, deadline
+		  FROM chapters
+		 WHERE id = ?
+	`, id).Scan(&c.ID, &c.BookID, &c.ChapterNum, &dl)
+	if err != nil {
+		return Chapter{}, err
+	}
+	if dl.Valid {
+		v := dl.Int64
+		c.Deadline = &v
+	} else {
+		c.Deadline = nil
+	}
+	return c, nil
+}

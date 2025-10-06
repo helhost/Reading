@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"example.com/sqlite-server/session"
+	"example.com/sqlite-server/util"
 )
 
 // RegisterChapterRoutes wires chapter endpoints.
@@ -40,9 +41,13 @@ func chaptersDispatcher(db *sql.DB) http.HandlerFunc {
 	}
 }
 
+
+// PATCH /chapters/{id}/deadline
+// Body: { "deadline": number|null }  (unix seconds; null clears)
+// Auth: caller must be enrolled in the chapter's course.
 func patchChapterDeadlineHandler(db *sql.DB, chapterID int64) http.HandlerFunc {
 	type payload struct {
-		Deadline *int64 `json:"deadline"` // unix seconds; nil clears deadline
+		Deadline *int64 `json:"deadline"`
 	}
 	const maxDeadline = int64(4102444800) // 2100-01-01T00:00:00Z
 
@@ -67,7 +72,7 @@ func patchChapterDeadlineHandler(db *sql.DB, chapterID int64) http.HandlerFunc {
 			}
 		}
 
-		// Ensure the chapter exists (optional but yields 404 when missing).
+		// Ensure the chapter exists (for 404 semantics).
 		if _, err := ChapterUniversityID(db, chapterID); err != nil {
 			if err == sql.ErrNoRows {
 				http.Error(w, "not found", http.StatusNotFound)
@@ -77,7 +82,7 @@ func patchChapterDeadlineHandler(db *sql.DB, chapterID int64) http.HandlerFunc {
 			return
 		}
 
-		// Stricter access control: must be enrolled in the course owning this chapter.
+		// Must be enrolled in the owning course.
 		canEdit, err := UserEnrolledInChapterCourse(db, uid, chapterID)
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
@@ -88,7 +93,7 @@ func patchChapterDeadlineHandler(db *sql.DB, chapterID int64) http.HandlerFunc {
 			return
 		}
 
-		// Apply the deadline change.
+		// Apply update.
 		if err := SetChapterDeadline(db, chapterID, p.Deadline); err != nil {
 			if err == sql.ErrNoRows {
 				http.Error(w, "not found", http.StatusNotFound)
@@ -98,6 +103,12 @@ func patchChapterDeadlineHandler(db *sql.DB, chapterID int64) http.HandlerFunc {
 			return
 		}
 
-		w.WriteHeader(http.StatusNoContent)
+		// Reload and return updated resource from the service layer.
+		c, err := GetChapter(db, chapterID)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		util.WriteJSON(w, c, http.StatusOK)
 	}
 }

@@ -102,3 +102,27 @@ func ListArticlesByCourse(db *sql.DB, courseID int64) ([]Article, error) {
 	}
 	return out, rows.Err()
 }
+
+// GetArticle returns the article by ID, including nullable location and deadline.
+func GetArticle(db *sql.DB, id int64) (Article, error) {
+	var a Article
+	var loc sql.NullString
+	var dl sql.NullInt64
+	err := db.QueryRow(`
+		SELECT id, course_id, title, author, location, deadline
+		  FROM articles
+		 WHERE id = ?;
+	`, id).Scan(&a.ID, &a.CourseID, &a.Title, &a.Author, &loc, &dl)
+	if err != nil {
+		return Article{}, err
+	}
+	if loc.Valid {
+		v := loc.String
+		a.Location = &v
+	}
+	if dl.Valid {
+		v := dl.Int64
+		a.Deadline = &v
+	}
+	return a, nil
+}

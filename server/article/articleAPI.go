@@ -144,7 +144,7 @@ func patchArticleDeadlineHandler(db *sql.DB, articleID int64) http.HandlerFunc {
 	type payload struct {
 		Deadline *int64 `json:"deadline"`
 	}
-	const maxDeadline = int64(4102444800) // 2100-01-01T00:00:00Z
+	const maxDeadline = int64(4102444800)
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		uid, ok := session.UserIDFromCtx(r.Context())
@@ -154,20 +154,16 @@ func patchArticleDeadlineHandler(db *sql.DB, articleID int64) http.HandlerFunc {
 		}
 
 		var p payload
-		dec := json.NewDecoder(r.Body)
-		dec.DisallowUnknownFields()
-		if err := dec.Decode(&p); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			return
 		}
-		if p.Deadline != nil {
-			if *p.Deadline < 0 || *p.Deadline > maxDeadline {
-				http.Error(w, "invalid deadline", http.StatusBadRequest)
-				return
-			}
+		if p.Deadline != nil && (*p.Deadline < 0 || *p.Deadline > maxDeadline) {
+			http.Error(w, "invalid deadline", http.StatusBadRequest)
+			return
 		}
 
-		// Ensure the article exists (for 404 semantics).
+		// Access checks
 		if _, err := ArticleUniversityID(db, articleID); err != nil {
 			if err == sql.ErrNoRows {
 				http.Error(w, "not found", http.StatusNotFound)
@@ -176,8 +172,6 @@ func patchArticleDeadlineHandler(db *sql.DB, articleID int64) http.HandlerFunc {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
-
-		// Stricter access: must be enrolled in the owning course.
 		canEdit, err := UserEnrolledInArticleCourse(db, uid, articleID)
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
@@ -188,6 +182,7 @@ func patchArticleDeadlineHandler(db *sql.DB, articleID int64) http.HandlerFunc {
 			return
 		}
 
+		// Update deadline
 		if err := SetArticleDeadline(db, articleID, p.Deadline); err != nil {
 			if err == sql.ErrNoRows {
 				http.Error(w, "not found", http.StatusNotFound)
@@ -197,10 +192,15 @@ func patchArticleDeadlineHandler(db *sql.DB, articleID int64) http.HandlerFunc {
 			return
 		}
 
-		w.WriteHeader(http.StatusNoContent)
+		// Fetch and return updated article
+		a, err := GetArticle(db, articleID)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		util.WriteJSON(w, a, http.StatusOK)
 	}
 }
-
 
 func getArticlesForCourseHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
