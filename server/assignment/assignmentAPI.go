@@ -38,10 +38,10 @@ func assignmentsHandler(db *sql.DB) http.HandlerFunc {
 // Dispatcher for /assignments/{id}/...
 func assignmentsDispatcher(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Expect: /assignments/{id}/deadline  (PATCH only)
+		// Expect: /assignments/{id}/(deadline|progress)
 		path := strings.TrimPrefix(r.URL.Path, "/assignments/")
 		parts := strings.Split(path, "/")
-		if len(parts) != 2 || parts[0] == "" || parts[1] != "deadline" {
+		if len(parts) != 2 || parts[0] == "" {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
@@ -51,11 +51,23 @@ func assignmentsDispatcher(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		switch r.Method {
-		case http.MethodPatch:
-			patchAssignmentDeadlineHandler(db, id)(w, r)
+		switch parts[1] {
+		case "deadline":
+			switch r.Method {
+			case http.MethodPatch:
+				patchAssignmentDeadlineHandler(db, id)(w, r)
+			default:
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			}
+		case "progress":
+			switch r.Method {
+			case http.MethodPatch:
+				patchAssignmentProgressHandler(db, id)(w, r)
+			default:
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			}
 		default:
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			http.Error(w, "not found", http.StatusNotFound)
 		}
 	}
 }
@@ -251,5 +263,68 @@ func patchAssignmentDeadlineHandler(db *sql.DB, assignmentID int64) http.Handler
 			return
 		}
 		util.WriteJSON(w, a, http.StatusOK)
+	}
+}
+
+
+// PATCH /assignments/{id}/progress
+// Body: { "completed": boolean }
+// Auth: caller must be enrolled in the assignment's course.
+// Returns: 200 OK with { "completed": true|false }
+func patchAssignmentProgressHandler(db *sql.DB, assignmentID int64) http.HandlerFunc {
+	type payload struct {
+		Completed *bool `json:"completed"`
+	}
+	type resp struct {
+		Completed bool `json:"completed"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		uid, ok := session.UserIDFromCtx(r.Context())
+		if !ok {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		var p payload
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&p); err != nil || p.Completed == nil {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+
+		// Ensure it exists (404 semantics).
+		if _, err := AssignmentUniversityID(db, assignmentID); err != nil {
+			if err == sql.ErrNoRows {
+				http.Error(w, "not found", http.StatusNotFound)
+				return
+			}
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		// Must be enrolled in owning course.
+		canEdit, err := UserEnrolledInAssignmentCourse(db, uid, assignmentID)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		if !canEdit {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+
+		// Apply change (service layer).
+		if err := SetAssignmentProgress(db, uid, assignmentID, *p.Completed); err != nil {
+			if err == sql.ErrNoRows {
+				http.Error(w, "not found", http.StatusNotFound)
+				return
+			}
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		util.WriteJSON(w, resp{Completed: *p.Completed}, http.StatusOK)
 	}
 }
