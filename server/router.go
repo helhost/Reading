@@ -11,6 +11,7 @@ import (
   "example.com/sqlite-server/enrollment"
   "example.com/sqlite-server/course"
 	"example.com/sqlite-server/book"
+	"example.com/sqlite-server/chapter"
 )
 
 // -----------------------------------------------------------
@@ -26,6 +27,7 @@ func registerRoutes(mux *http.ServeMux, db *sql.DB) {
   enrollment.RegisterEnrollmentRoutes(mux, db)
 	course.RegisterCourseRoutes(mux, db)
 	book.RegisterBookRoutes(mux, db)
+	chapter.RegisterChapterRoutes(mux, db)
 
 }
 
