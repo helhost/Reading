@@ -1,6 +1,10 @@
 package university
 
-import "database/sql"
+import (
+	"database/sql"
+	"errors"
+	"strings"
+)
 
 type University struct {
   ID        string `json:"id"`
@@ -49,4 +53,37 @@ func ListUniversities(db *sql.DB) ([]University, error) {
     out = append(out, u)
   }
   return out, rows.Err()
+}
+
+func DeleteUniversityIfNoCourses(db *sql.DB, id string) (bool, error) {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return false, errors.New("invalid input")
+	}
+
+	// Ensure the university exists.
+	var uid string
+	if err := db.QueryRow(`SELECT id FROM universities WHERE id = ?`, id).Scan(&uid); err != nil {
+		if err == sql.ErrNoRows {
+			return false, sql.ErrNoRows
+		}
+		return false, err
+	}
+
+	// Check for any courses under it.
+	var cnt int64
+	if err := db.QueryRow(`SELECT COUNT(1) FROM courses WHERE university_id = ?`, id).Scan(&cnt); err != nil {
+		return false, err
+	}
+	if cnt > 0 {
+		return false, errors.New("university has courses")
+	}
+
+	// Safe to delete.
+	res, err := db.Exec(`DELETE FROM universities WHERE id = ?`, id)
+	if err != nil {
+		return false, err
+	}
+	n, _ := res.RowsAffected()
+	return n > 0, nil
 }
