@@ -11,20 +11,46 @@ import (
 )
 
 func RegisterMembershipRoutes(mux *http.ServeMux, db *sql.DB) {
-  // Subscribe the current user to a university (auth required)
-  mux.HandleFunc("/user-universities", session.RequireAuth(db, postMembership(db)))
+  mux.HandleFunc("/user-universities", userUniversitiesHandler(db))
 }
 
-func postMembership(db *sql.DB) http.HandlerFunc {
+// Dispatcher for /user-universities
+func userUniversitiesHandler(db *sql.DB) http.HandlerFunc {
+  return func(w http.ResponseWriter, r *http.Request) {
+    switch r.Method {
+    case http.MethodGet:
+      session.RequireAuth(db, getUserUniversitiesHandler(db)).ServeHTTP(w, r)
+    case http.MethodPost:
+      session.RequireAuth(db, postUserUniversityHandler(db)).ServeHTTP(w, r)
+    default:
+      http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+    }
+  }
+}
+
+// GET /user-universities  (list my memberships)
+func getUserUniversitiesHandler(db *sql.DB) http.HandlerFunc {
+  return func(w http.ResponseWriter, r *http.Request) {
+    userID, ok := session.UserIDFromCtx(r.Context())
+    if !ok {
+      http.Error(w, "unauthorized", http.StatusUnauthorized)
+      return
+    }
+    list, err := ListMemberships(db, userID)
+    if err != nil {
+      http.Error(w, "internal error", http.StatusInternalServerError)
+      return
+    }
+    util.WriteJSON(w, list, http.StatusOK)
+  }
+}
+
+// POST /user-universities  (subscribe me to a university)
+func postUserUniversityHandler(db *sql.DB) http.HandlerFunc {
   type payload struct {
     UniversityID string `json:"universityId"`
   }
   return func(w http.ResponseWriter, r *http.Request) {
-    if r.Method != http.MethodPost {
-      http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-      return
-    }
-
     userID, ok := session.UserIDFromCtx(r.Context())
     if !ok {
       http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -38,6 +64,7 @@ func postMembership(db *sql.DB) http.HandlerFunc {
       http.Error(w, "bad request", http.StatusBadRequest)
       return
     }
+
     uniID := strings.TrimSpace(p.UniversityID)
     if uniID == "" {
       http.Error(w, "universityId is required", http.StatusBadRequest)
@@ -58,6 +85,6 @@ func postMembership(db *sql.DB) http.HandlerFunc {
       util.WriteJSON(w, m, http.StatusCreated)
       return
     }
-    util.WriteJSON(w, m, http.StatusOK) // already subscribed
+    util.WriteJSON(w, m, http.StatusOK) // idempotent re-subscribe
   }
 }

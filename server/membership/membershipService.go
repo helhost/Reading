@@ -1,8 +1,6 @@
 package membership
 
-import (
-  "database/sql"
-)
+import "database/sql"
 
 type Membership struct {
   UserID       string `json:"userId"`
@@ -10,12 +8,19 @@ type Membership struct {
   Role         string `json:"role"`
 }
 
-// AddMembership subscribes user to university (idempotent).
+type MembershipView struct {
+  UniversityID string `json:"universityId"`
+  Name         string `json:"name"`
+  Role         string `json:"role"`
+  CreatedAt    int64  `json:"created_at"`
+}
+
+// AddMembership subscribes user to a university (idempotent).
 // Returns (created, Membership, error).
 func AddMembership(db *sql.DB, userID, universityID string) (bool, Membership, error) {
-  // Ensure university exists
-  var tmp string
-  if err := db.QueryRow(`SELECT id FROM universities WHERE id = ?`, universityID).Scan(&tmp); err != nil {
+  // Ensure the university exists
+  var exists string
+  if err := db.QueryRow(`SELECT id FROM universities WHERE id = ?`, universityID).Scan(&exists); err != nil {
     if err == sql.ErrNoRows {
       return false, Membership{}, sql.ErrNoRows
     }
@@ -36,14 +41,41 @@ func AddMembership(db *sql.DB, userID, universityID string) (bool, Membership, e
     created = true
   }
 
-  // Read back role (in case defaults/changes later)
+  // Read final role
   var role string
   if err := db.QueryRow(`
-    SELECT role FROM user_universities
-    WHERE user_id = ? AND university_id = ?
+    SELECT role
+      FROM user_universities
+     WHERE user_id = ? AND university_id = ?
   `, userID, universityID).Scan(&role); err != nil {
     return created, Membership{}, err
   }
 
   return created, Membership{UserID: userID, UniversityID: universityID, Role: role}, nil
+}
+
+// ListMemberships returns all universities the user is a member of.
+func ListMemberships(db *sql.DB, userID string) ([]MembershipView, error) {
+  rows, err := db.Query(`
+    SELECT u.id, u.name, uu.role, u.created_at
+      FROM universities u
+      JOIN user_universities uu
+        ON uu.university_id = u.id
+     WHERE uu.user_id = ?
+     ORDER BY u.name ASC
+  `, userID)
+  if err != nil {
+    return nil, err
+  }
+  defer rows.Close()
+
+  out := make([]MembershipView, 0, 16)
+  for rows.Next() {
+    var mv MembershipView
+    if err := rows.Scan(&mv.UniversityID, &mv.Name, &mv.Role, &mv.CreatedAt); err != nil {
+      return nil, err
+    }
+    out = append(out, mv)
+  }
+  return out, rows.Err()
 }
