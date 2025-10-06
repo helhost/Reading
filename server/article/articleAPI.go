@@ -214,6 +214,9 @@ func patchArticleDeadlineHandler(db *sql.DB, articleID int64) http.HandlerFunc {
 	}
 }
 
+// GET /articles?courseId=123
+// Auth: caller must be ENROLLED in the course (not just a uni member).
+// Returns: []ArticleWithStatus (includes "completed" per user)
 func getArticlesForCourseHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uid, ok := session.UserIDFromCtx(r.Context())
@@ -227,26 +230,19 @@ func getArticlesForCourseHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		uniID, err := enrollment.CourseUniversity(db, courseID)
-		if err != nil {
-			if err == sql.ErrNoRows {
-				http.Error(w, "course not found", http.StatusBadRequest)
-				return
-			}
-			http.Error(w, "internal error", http.StatusInternalServerError)
-			return
-		}
-		isMember, err := membership.IsMember(db, uid, uniID)
+		// Must be enrolled in this course.
+		enrolled, err := enrollment.UserEnrolledInCourse(db, uid, courseID)
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
-		if !isMember {
+		if !enrolled {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
 
-		list, err := ListArticlesByCourse(db, courseID)
+		// Fetch with per-user progress
+		list, err := ListArticlesByCourseWithProgress(db, courseID, uid)
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
@@ -254,7 +250,6 @@ func getArticlesForCourseHandler(db *sql.DB) http.HandlerFunc {
 		util.WriteJSON(w, list, http.StatusOK)
 	}
 }
-
 
 // PATCH /articles/{id}/progress
 // Body: { "completed": boolean }

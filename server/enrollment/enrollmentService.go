@@ -1,7 +1,9 @@
-
 package enrollment
 
-import "database/sql"
+import (
+	"database/sql"
+	"errors"
+)
 
 type Enrollment struct {
   UserID   string `json:"userId"`
@@ -53,4 +55,26 @@ func CourseUniversity(db *sql.DB, courseID int64) (string, error) {
   var uniID string
   err := db.QueryRow(`SELECT university_id FROM courses WHERE id = ?`, courseID).Scan(&uniID)
   return uniID, err
+}
+
+
+// UserEnrolledInCourse reports whether the given user is enrolled in the course.
+func UserEnrolledInCourse(db *sql.DB, userID string, courseID int64) (bool, error) {
+	if userID == "" || courseID <= 0 {
+		return false, errors.New("invalid input")
+	}
+	var x int
+	err := db.QueryRow(`
+		SELECT 1
+		  FROM user_courses
+		 WHERE user_id = ? AND course_id = ?
+		 LIMIT 1
+	`, userID, courseID).Scan(&x)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true == (x == 1), nil
 }

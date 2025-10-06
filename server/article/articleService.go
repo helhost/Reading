@@ -65,29 +65,45 @@ func AddArticle(db *sql.DB, courseID int64, title, author string, location *stri
 }
 
 
-// ListArticlesByCourse returns all articles for a course (including nullable deadline).
-func ListArticlesByCourse(db *sql.DB, courseID int64) ([]Article, error) {
-	if courseID <= 0 {
-		return []Article{}, nil
+type ArticleWithStatus struct {
+	ID        int64   `json:"id"`
+	CourseID  int64   `json:"courseId"`
+	Title     string  `json:"title"`
+	Author    string  `json:"author"`
+	Location  *string `json:"location,omitempty"`
+	Deadline  *int64  `json:"deadline,omitempty"`
+	Completed bool    `json:"completed"`
+}
+
+// ListArticlesByCourseWithProgress returns all articles for a course and
+// includes a per-user "completed" flag from the progress table.
+func ListArticlesByCourseWithProgress(db *sql.DB, courseID int64, userID string) ([]ArticleWithStatus, error) {
+	if courseID <= 0 || strings.TrimSpace(userID) == "" {
+		return []ArticleWithStatus{}, nil
 	}
 
 	rows, err := db.Query(`
-		SELECT id, course_id, title, author, location, deadline
-		  FROM articles
-		 WHERE course_id = ?
-		 ORDER BY id ASC
-	`, courseID)
+		SELECT a.id, a.course_id, a.title, a.author, a.location, a.deadline,
+		       COALESCE(p.completed, 0)
+		  FROM articles a
+		  LEFT JOIN progress p
+		         ON p.article_id = a.id
+		        AND p.user_id   = ?
+		 WHERE a.course_id = ?
+		 ORDER BY a.id ASC
+	`, userID, courseID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	out := make([]Article, 0, 32)
+	out := make([]ArticleWithStatus, 0, 32)
 	for rows.Next() {
-		var a Article
+		var a ArticleWithStatus
 		var loc sql.NullString
-		var dl  sql.NullInt64
-		if err := rows.Scan(&a.ID, &a.CourseID, &a.Title, &a.Author, &loc, &dl); err != nil {
+		var dl sql.NullInt64
+		var compInt int64
+		if err := rows.Scan(&a.ID, &a.CourseID, &a.Title, &a.Author, &loc, &dl, &compInt); err != nil {
 			return nil, err
 		}
 		if loc.Valid {
@@ -98,10 +114,12 @@ func ListArticlesByCourse(db *sql.DB, courseID int64) ([]Article, error) {
 			v := dl.Int64
 			a.Deadline = &v
 		}
+		a.Completed = compInt == 1
 		out = append(out, a)
 	}
 	return out, rows.Err()
 }
+
 
 // GetArticle returns the article by ID, including nullable location and deadline.
 func GetArticle(db *sql.DB, id int64) (Article, error) {
