@@ -54,6 +54,20 @@ func AddMembership(db *sql.DB, userID, universityID string) (bool, Membership, e
   return created, Membership{UserID: userID, UniversityID: universityID, Role: role}, nil
 }
 
+// RemoveMembership unsubscribes user from a university.
+// Returns (deleted, error). Idempotent: deleted=false if nothing to remove.
+func RemoveMembership(db *sql.DB, userID, universityID string) (bool, error) {
+  res, err := db.Exec(`
+    DELETE FROM user_universities
+     WHERE user_id = ? AND university_id = ?
+  `, userID, universityID)
+  if err != nil {
+    return false, err
+  }
+  n, _ := res.RowsAffected()
+  return n > 0, nil
+}
+
 // ListMemberships returns all universities the user is a member of.
 func ListMemberships(db *sql.DB, userID string) ([]MembershipView, error) {
   rows, err := db.Query(`
