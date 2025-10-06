@@ -338,6 +338,16 @@ func deleteAssignmentHandler(db *sql.DB) http.HandlerFunc {
 		dec.DisallowUnknownFields()
 		if err := dec.Decode(&p); err != nil || p.AssignmentID <= 0 {
 			http.Error(w, "bad request", http.StatusBadRequest)
+		 return
+		}
+
+		// 1) Existence check -> 404
+		if _, err := GetAssignment(db, p.AssignmentID); err != nil {
+			if err == sql.ErrNoRows {
+				http.Error(w, "not found", http.StatusNotFound)
+				return
+			}
+			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
 
@@ -347,7 +357,7 @@ func deleteAssignmentHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		// Must be enrolled in owning course
+		// 2) Enrollment check
 		enrolled, err := UserEnrolledInAssignmentCourse(db, uid, p.AssignmentID)
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
@@ -358,6 +368,7 @@ func deleteAssignmentHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		// 3) Delete with progress guard
 		deleted, derr := DeleteAssignmentIfNoProgress(db, p.AssignmentID)
 		if derr != nil {
 			switch {

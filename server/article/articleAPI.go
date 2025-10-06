@@ -333,12 +333,23 @@ func deleteArticleHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		// 1) Existence check -> 404 if missing
+		if _, err := GetArticle(db, p.ArticleID); err != nil {
+			if err == sql.ErrNoRows {
+				http.Error(w, "not found", http.StatusNotFound)
+				return
+			}
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
 		uid, ok := session.UserIDFromCtx(r.Context())
 		if !ok {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 
+		// 2) Enrollment check
 		enrolled, err := UserEnrolledInArticleCourse(db, uid, p.ArticleID)
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
@@ -349,6 +360,7 @@ func deleteArticleHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		// 3) Delete with progress guard
 		deleted, derr := DeleteArticleIfNoProgress(db, p.ArticleID)
 		if derr != nil {
 			switch {

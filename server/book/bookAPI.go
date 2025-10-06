@@ -24,6 +24,8 @@ func booksHandler(db *sql.DB) http.HandlerFunc {
 			getBooksForCourseHandler(db)(w, r)
 		case http.MethodPost:
 			postBookHandler(db)(w, r)
+		case http.MethodDelete:
+			deleteBookHandler(db)(w, r)
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
@@ -134,5 +136,76 @@ func postBookHandler(db *sql.DB) http.HandlerFunc {
 			}
 		}
 		util.WriteJSON(w, b, http.StatusCreated)
+	}
+}
+
+
+// DELETE /books
+// Body: { "bookId": number }
+// Auth: must be enrolled in the book's course.
+// 204 if deleted; 404 if not found; 409 if any chapter has progress.
+func deleteBookHandler(db *sql.DB) http.HandlerFunc {
+	type payload struct {
+		BookID int64 `json:"bookId"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		var p payload
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&p); err != nil || p.BookID <= 0 {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+
+		// 1) Existence check -> 404 (use BookCourseID which 404s if missing)
+		if _, err := BookCourseID(db, p.BookID); err != nil {
+			if err == sql.ErrNoRows {
+				http.Error(w, "not found", http.StatusNotFound)
+				return
+			}
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+
+		uid, ok := session.UserIDFromCtx(r.Context())
+		if !ok {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		// 2) Enrollment check
+		enrolled, err := UserEnrolledInBookCourse(db, uid, p.BookID)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		if !enrolled {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+
+		// 3) Delete with chapter-progress guard
+		deleted, derr := DeleteBookIfNoChapterProgress(db, p.BookID)
+		if derr != nil {
+			switch {
+			case derr == sql.ErrNoRows:
+				http.Error(w, "not found", http.StatusNotFound)
+				return
+			case strings.Contains(strings.ToLower(derr.Error()), "invalid input"):
+				http.Error(w, "invalid input", http.StatusBadRequest)
+				return
+			case strings.Contains(strings.ToLower(derr.Error()), "chapter progress"):
+				http.Error(w, "conflict: book has chapter progress", http.StatusConflict)
+				return
+			default:
+				http.Error(w, "internal error", http.StatusInternalServerError)
+				return
+			}
+		}
+		if !deleted {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
 	}
 }

@@ -207,3 +207,78 @@ func ListBooksByCourseWithProgress(db *sql.DB, courseID int64, userID string) ([
 	}
 	return books, nil
 }
+
+
+// BookCourseID returns the owning course_id for a book.
+func BookCourseID(db *sql.DB, bookID int64) (int64, error) {
+	if bookID <= 0 {
+		return 0, errors.New("invalid input")
+	}
+	var cid int64
+	if err := db.QueryRow(`SELECT course_id FROM books WHERE id = ?`, bookID).Scan(&cid); err != nil {
+		return 0, err // may be sql.ErrNoRows
+	}
+	return cid, nil
+}
+
+// UserEnrolledInBookCourse reports whether the user is enrolled in the book's course.
+func UserEnrolledInBookCourse(db *sql.DB, userID string, bookID int64) (bool, error) {
+	if strings.TrimSpace(userID) == "" || bookID <= 0 {
+		return false, errors.New("invalid input")
+	}
+	var exists int
+	err := db.QueryRow(`
+		SELECT 1
+		  FROM user_courses uc
+		  JOIN books b ON b.id = ?
+		  JOIN courses c ON c.id = b.course_id
+		 WHERE uc.user_id = ? AND uc.course_id = c.id
+		 LIMIT 1;
+	`, bookID, userID).Scan(&exists)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+	return exists == 1, nil
+}
+
+// DeleteBookIfNoChapterProgress deletes the book iff it exists and
+// no user has completed ANY of its chapters. Returns (false, sql.ErrNoRows) if missing.
+func DeleteBookIfNoChapterProgress(db *sql.DB, bookID int64) (bool, error) {
+	if bookID <= 0 {
+		return false, errors.New("invalid input")
+	}
+
+	// Ensure book exists
+	var exists int64
+	if err := db.QueryRow(`SELECT id FROM books WHERE id = ?`, bookID).Scan(&exists); err != nil {
+		if err == sql.ErrNoRows {
+			return false, sql.ErrNoRows
+		}
+		return false, err
+	}
+
+	// Block if any chapter has progress
+	var cnt int64
+	if err := db.QueryRow(`
+		SELECT COUNT(1)
+		  FROM progress p
+		  JOIN chapters ch ON ch.id = p.chapter_id
+		 WHERE ch.book_id = ?
+	`, bookID).Scan(&cnt); err != nil {
+		return false, err
+	}
+	if cnt > 0 {
+		return false, errors.New("book has chapter progress")
+	}
+
+	// Safe to delete (chapters will cascade due to FK)
+	res, err := db.Exec(`DELETE FROM books WHERE id = ?`, bookID)
+	if err != nil {
+		return false, err
+	}
+	n, _ := res.RowsAffected()
+	return n > 0, nil
+}
