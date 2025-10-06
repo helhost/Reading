@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"example.com/sqlite-server/store"
+	"example.com/sqlite-server/middleware"
 )
 
 func main() {
@@ -34,8 +35,8 @@ func main() {
 	// 3. Top-level mux
 	mux := http.NewServeMux()
 
-	// Mount API under /api
-	mux.Handle("/api/", http.StripPrefix("/api", withCORS(apiMux)))
+	// Mount API under /api with CORS middleware
+	mux.Handle("/api/", http.StripPrefix("/api", middleware.WithCORS(apiMux)))
 
 	// Serve static client (if present)
 	fs := http.FileServer(http.Dir("./client"))

@@ -28,3 +28,25 @@ func AddUniversity(db *sql.DB, id, name string) (University, error) {
   }
   return u, nil
 }
+
+func ListUniversities(db *sql.DB) ([]University, error) {
+  rows, err := db.Query(`
+    SELECT id, name, created_at
+      FROM universities
+     ORDER BY name ASC
+  `)
+  if err != nil {
+    return nil, err
+  }
+  defer rows.Close()
+
+  out := make([]University, 0, 64)
+  for rows.Next() {
+    var u University
+    if err := rows.Scan(&u.ID, &u.Name, &u.CreatedAt); err != nil {
+      return nil, err
+    }
+    out = append(out, u)
+  }
+  return out, rows.Err()
+}

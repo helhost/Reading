@@ -8,28 +8,46 @@ import (
 
   "github.com/google/uuid"
 
-  "example.com/sqlite-server/util"
   "example.com/sqlite-server/session"
+  "example.com/sqlite-server/util"
 )
 
 func RegisterUniversityRoutes(mux *http.ServeMux, db *sql.DB) {
-  mux.HandleFunc("/universities", session.RequireAuth(db, postUniversity(db)))
+  mux.HandleFunc("/universities", universitiesHandler(db))
 }
 
-func postUniversity(db *sql.DB) http.HandlerFunc {
+// Dispatcher — GET is public; POST requires auth
+func universitiesHandler(db *sql.DB) http.HandlerFunc {
+  return func(w http.ResponseWriter, r *http.Request) {
+    switch r.Method {
+    case http.MethodGet:
+      getUniversitiesHandler(db)(w, r)
+    case http.MethodPost:
+      session.RequireAuth(db, postUniversityHandler(db)).ServeHTTP(w, r)
+    default:
+      http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+    }
+  }
+}
+
+// GET /universities (public)
+func getUniversitiesHandler(db *sql.DB) http.HandlerFunc {
+  return func(w http.ResponseWriter, r *http.Request) {
+    list, err := ListUniversities(db)
+    if err != nil {
+      http.Error(w, "internal error", http.StatusInternalServerError)
+      return
+    }
+    util.WriteJSON(w, list, http.StatusOK)
+  }
+}
+
+// POST /universities (auth required)
+func postUniversityHandler(db *sql.DB) http.HandlerFunc {
   type payload struct {
     Name string `json:"name"`
   }
   return func(w http.ResponseWriter, r *http.Request) {
-    if r.Method != http.MethodPost {
-      http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-      return
-    }
-    if _, ok := session.UserIDFromCtx(r.Context()); !ok {
-      http.Error(w, "unauthorized", http.StatusUnauthorized)
-      return
-    }
-
     var p payload
     dec := json.NewDecoder(r.Body)
     dec.DisallowUnknownFields()
