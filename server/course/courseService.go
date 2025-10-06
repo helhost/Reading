@@ -122,3 +122,53 @@ func ListCoursesByUniversity(db *sql.DB, universityID string) ([]Course, error) 
 	}
 	return out, rows.Err()
 }
+
+
+// DeleteCourseIfEmpty deletes the course only if it exists AND has no books, articles, or assignments.
+// Returns (false, sql.ErrNoRows) if course doesn't exist.
+func DeleteCourseIfEmpty(db *sql.DB, courseID int64) (bool, error) {
+	if courseID <= 0 {
+		return false, errors.New("invalid input")
+	}
+
+	// Ensure course exists.
+	var exists int64
+	if err := db.QueryRow(`SELECT id FROM courses WHERE id = ?`, courseID).Scan(&exists); err != nil {
+		if err == sql.ErrNoRows {
+			return false, sql.ErrNoRows
+		}
+		return false, err
+	}
+
+	// Check emptiness: no books, no articles, no assignments.
+	var cnt int64
+
+	if err := db.QueryRow(`SELECT COUNT(1) FROM books WHERE course_id = ?`, courseID).Scan(&cnt); err != nil {
+		return false, err
+	}
+	if cnt > 0 {
+		return false, errors.New("course has books")
+	}
+
+	if err := db.QueryRow(`SELECT COUNT(1) FROM articles WHERE course_id = ?`, courseID).Scan(&cnt); err != nil {
+		return false, err
+	}
+	if cnt > 0 {
+		return false, errors.New("course has articles")
+	}
+
+	if err := db.QueryRow(`SELECT COUNT(1) FROM assignments WHERE course_id = ?`, courseID).Scan(&cnt); err != nil {
+		return false, err
+	}
+	if cnt > 0 {
+		return false, errors.New("course has assignments")
+	}
+
+	// Safe to delete.
+	res, err := db.Exec(`DELETE FROM courses WHERE id = ?`, courseID)
+	if err != nil {
+		return false, err
+	}
+	n, _ := res.RowsAffected()
+	return n > 0, nil
+}
