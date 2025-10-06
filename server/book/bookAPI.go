@@ -30,8 +30,10 @@ func booksHandler(db *sql.DB) http.HandlerFunc {
 	}
 }
 
+
 // GET /books?courseId=123
-// Returns books for the course, each with embedded chapters.
+// Returns books for the course, each with embedded chapters and per-user "completed".
+// Access: caller must be ENROLLED in the course (not just university member).
 func getBooksForCourseHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uid, ok := session.UserIDFromCtx(r.Context())
@@ -45,26 +47,18 @@ func getBooksForCourseHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		uniID, err := enrollment.CourseUniversity(db, courseID)
-		if err != nil {
-			if err == sql.ErrNoRows {
-				http.Error(w, "course not found", http.StatusBadRequest)
-				return
-			}
-			http.Error(w, "internal error", http.StatusInternalServerError)
-			return
-		}
-		isMember, err := membership.IsMember(db, uid, uniID)
+		// Tighten access: must be enrolled
+		enrolled, err := enrollment.UserEnrolledInCourse(db, uid, courseID)
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
-		if !isMember {
+		if !enrolled {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
 
-		list, err := ListBooksByCourse(db, courseID)
+		list, err := ListBooksByCourseWithProgress(db, courseID, uid)
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return

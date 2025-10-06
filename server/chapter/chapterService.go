@@ -142,3 +142,61 @@ func GetChapter(db *sql.DB, id int64) (Chapter, error) {
 	}
 	return c, nil
 }
+
+
+type ChapterWithStatus struct {
+	ID         int64  `json:"id"`
+	BookID     int64  `json:"bookId"`
+	ChapterNum int64  `json:"chapter_num"`
+	Deadline   *int64 `json:"deadline,omitempty"`
+	Completed  bool   `json:"completed"`
+}
+
+// ListByBooksWithProgress returns chapters for the given book IDs and marks
+// whether the given user has completed each one.
+func ListByBooksWithProgress(db *sql.DB, bookIDs []int64, userID string) (map[int64][]ChapterWithStatus, error) {
+	if len(bookIDs) == 0 || strings.TrimSpace(userID) == "" {
+		return map[int64][]ChapterWithStatus{}, nil
+	}
+
+	placeholders := make([]string, 0, len(bookIDs))
+	args := make([]any, 0, len(bookIDs)+1)
+	args = append(args, userID)
+	for _, id := range bookIDs {
+		placeholders = append(placeholders, "?")
+		args = append(args, id)
+	}
+
+	q := `
+		SELECT ch.id, ch.book_id, ch.chapter_num, ch.deadline,
+		       COALESCE(p.completed, 0)
+		  FROM chapters ch
+		  LEFT JOIN progress p
+		         ON p.chapter_id = ch.id
+		        AND p.user_id = ?
+		 WHERE ch.book_id IN (` + strings.Join(placeholders, ",") + `)
+		 ORDER BY ch.book_id ASC, ch.chapter_num ASC
+	`
+	rows, err := db.Query(q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	m := make(map[int64][]ChapterWithStatus, len(bookIDs))
+	for rows.Next() {
+		var c ChapterWithStatus
+		var dl sql.NullInt64
+		var compInt int64
+		if err := rows.Scan(&c.ID, &c.BookID, &c.ChapterNum, &dl, &compInt); err != nil {
+			return nil, err
+		}
+		if dl.Valid {
+			v := dl.Int64
+			c.Deadline = &v
+		}
+		c.Completed = compInt == 1
+		m[c.BookID] = append(m[c.BookID], c)
+	}
+	return m, rows.Err()
+}

@@ -115,3 +115,58 @@ func ListAssignmentsByCourse(db *sql.DB, courseID int64) ([]Assignment, error) {
 	}
 	return out, rows.Err()
 }
+
+
+type AssignmentWithStatus struct {
+	ID          int64   `json:"id"`
+	CourseID    int64   `json:"courseId"`
+	Title       string  `json:"title"`
+	Description *string `json:"description,omitempty"`
+	Deadline    *int64  `json:"deadline,omitempty"`
+	Completed   bool    `json:"completed"`
+}
+
+// ListAssignmentsByCourseWithProgress returns all assignments for a course
+// and marks whether the given user has completed each one.
+func ListAssignmentsByCourseWithProgress(db *sql.DB, courseID int64, userID string) ([]AssignmentWithStatus, error) {
+	if courseID <= 0 || strings.TrimSpace(userID) == "" {
+		return []AssignmentWithStatus{}, nil
+	}
+
+	rows, err := db.Query(`
+		SELECT a.id, a.course_id, a.title, a.description, a.deadline,
+		       COALESCE(p.completed, 0)
+		  FROM assignments a
+		  LEFT JOIN progress p
+		         ON p.assignment_id = a.id
+		        AND p.user_id = ?
+		 WHERE a.course_id = ?
+		 ORDER BY a.id ASC
+	`, userID, courseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := make([]AssignmentWithStatus, 0, 32)
+	for rows.Next() {
+		var a AssignmentWithStatus
+		var desc sql.NullString
+		var dl sql.NullInt64
+		var compInt int64
+		if err := rows.Scan(&a.ID, &a.CourseID, &a.Title, &desc, &dl, &compInt); err != nil {
+			return nil, err
+		}
+		if desc.Valid {
+			v := desc.String
+			a.Description = &v
+		}
+		if dl.Valid {
+			v := dl.Int64
+			a.Deadline = &v
+		}
+		a.Completed = compInt == 1
+		out = append(out, a)
+	}
+	return out, rows.Err()
+}

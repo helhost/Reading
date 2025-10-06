@@ -150,9 +150,10 @@ func postAssignmentHandler(db *sql.DB) http.HandlerFunc {
 	}
 }
 
-// GET /assignments?courseId=...
-// Auth: member of the university that owns the course.
-// Returns: Array<Assignment>
+
+// GET /assignments?courseId=123
+// Auth: caller must be ENROLLED in the course.
+// Returns: []AssignmentWithStatus including per-user "completed" flag.
 func getAssignmentsForCourseHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uid, ok := session.UserIDFromCtx(r.Context())
@@ -166,26 +167,17 @@ func getAssignmentsForCourseHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		uniID, err := enrollment.CourseUniversity(db, courseID)
-		if err != nil {
-			if err == sql.ErrNoRows {
-				http.Error(w, "course not found", http.StatusBadRequest)
-				return
-			}
-			http.Error(w, "internal error", http.StatusInternalServerError)
-			return
-		}
-		isMember, err := membership.IsMember(db, uid, uniID)
+		enrolled, err := enrollment.UserEnrolledInCourse(db, uid, courseID)
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
-		if !isMember {
+		if !enrolled {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
 
-		list, err := ListAssignmentsByCourse(db, courseID)
+		list, err := ListAssignmentsByCourseWithProgress(db, courseID, uid)
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
