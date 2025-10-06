@@ -1,10 +1,11 @@
 package util
 
 import (
-  "encoding/json"
+	"encoding/json"
   "net/http"
   "net/mail"
   "os"
+  "strconv"
   "strings"
 )
 
@@ -24,4 +25,17 @@ func VerifyEmail(s string) bool {
 func IsProd() bool {
   v := strings.ToLower(strings.TrimSpace(os.Getenv("ENV")))
   return v == "prod"
+}
+
+// ParseInt64Query extracts and parses a positive int64 query parameter.
+func ParseInt64Query(r *http.Request, key string) (int64, error) {
+  v := strings.TrimSpace(r.URL.Query().Get(key))
+  if v == "" {
+    return 0, strconv.ErrSyntax
+  }
+  n, err := strconv.ParseInt(v, 10, 64)
+  if err != nil {
+    return 0, err
+  }
+  return n, nil
 }
