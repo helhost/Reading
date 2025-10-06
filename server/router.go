@@ -8,6 +8,7 @@ import (
 	"example.com/sqlite-server/auth"
 	"example.com/sqlite-server/university"
   "example.com/sqlite-server/membership"
+  "example.com/sqlite-server/enrollment"
   "example.com/sqlite-server/course"
 )
 
@@ -21,7 +22,9 @@ func registerRoutes(mux *http.ServeMux, db *sql.DB) {
 	auth.RegisterAuthRoutes(mux, db)
 	university.RegisterUniversityRoutes(mux, db)
   membership.RegisterMembershipRoutes(mux, db)
+  enrollment.RegisterEnrollmentRoutes(mux, db)
 	course.RegisterCourseRoutes(mux, db)
+
 }
 
 // -----------------------------------------------------------
