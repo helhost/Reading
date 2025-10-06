@@ -8,7 +8,8 @@ import (
 	"os"
 	"strings"
 
-	"example.com/sqlite-server/api"
+	"example.com/sqlite-server/auth"
+	"example.com/sqlite-server/university"
 )
 
 // -----------------------------------------------------------
@@ -75,10 +76,8 @@ func withCORS(next http.Handler) http.Handler {
 func registerRoutes(mux *http.ServeMux, db *sql.DB) {
 	mux.HandleFunc("/", rootHandler)
 
-	// delegate resource-specific routes to the api package
-	api.RegisterBookRoutes(mux, db)
-	api.RegisterCourseRoutes(mux, db)
-	api.RegisterAuthRoutes(mux, db)
+	auth.RegisterAuthRoutes(mux, db)
+  university.RegisterUniversityRoutes(mux, db)
 }
 
 // -----------------------------------------------------------
