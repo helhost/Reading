@@ -27,6 +27,8 @@ func articlesHandler(db *sql.DB) http.HandlerFunc {
 			postArticleHandler(db)(w, r)
 		case http.MethodGet:
 			getArticlesForCourseHandler(db)(w, r)
+		case http.MethodDelete:
+			deleteArticleHandler(db)(w, r)
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
@@ -310,5 +312,64 @@ func patchArticleProgressHandler(db *sql.DB, articleID int64) http.HandlerFunc {
 		}
 
 		util.WriteJSON(w, resp{Completed: *p.Completed}, http.StatusOK)
+	}
+}
+
+
+// DELETE /articles
+// Body: { "articleId": number }
+// Auth: must be enrolled in the article's course.
+// 204 if deleted; 404 if not found; 409 if any user has completed it.
+func deleteArticleHandler(db *sql.DB) http.HandlerFunc {
+	type payload struct {
+		ArticleID int64 `json:"articleId"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		var p payload
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&p); err != nil || p.ArticleID <= 0 {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+
+		uid, ok := session.UserIDFromCtx(r.Context())
+		if !ok {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		enrolled, err := UserEnrolledInArticleCourse(db, uid, p.ArticleID)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		if !enrolled {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+
+		deleted, derr := DeleteArticleIfNoProgress(db, p.ArticleID)
+		if derr != nil {
+			switch {
+			case derr == sql.ErrNoRows:
+				http.Error(w, "not found", http.StatusNotFound)
+				return
+			case strings.Contains(strings.ToLower(derr.Error()), "invalid input"):
+				http.Error(w, "invalid input", http.StatusBadRequest)
+				return
+			case strings.Contains(strings.ToLower(derr.Error()), "has progress"):
+				http.Error(w, "conflict: article has progress", http.StatusConflict)
+				return
+			default:
+				http.Error(w, "internal error", http.StatusInternalServerError)
+				return
+			}
+		}
+		if !deleted {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
 	}
 }

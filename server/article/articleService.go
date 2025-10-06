@@ -144,3 +144,38 @@ func GetArticle(db *sql.DB, id int64) (Article, error) {
 	}
 	return a, nil
 }
+
+
+// DeleteArticleIfNoProgress deletes the article iff it exists and
+// no user has a completion row for it. Returns (false, sql.ErrNoRows) if missing.
+func DeleteArticleIfNoProgress(db *sql.DB, articleID int64) (bool, error) {
+	if articleID <= 0 {
+		return false, errors.New("invalid input")
+	}
+
+	// Ensure it exists
+	var exists int64
+	if err := db.QueryRow(`SELECT id FROM articles WHERE id = ?`, articleID).Scan(&exists); err != nil {
+		if err == sql.ErrNoRows {
+			return false, sql.ErrNoRows
+		}
+		return false, err
+	}
+
+	// Block if anyone has progress
+	var cnt int64
+	if err := db.QueryRow(`SELECT COUNT(1) FROM progress WHERE article_id = ?`, articleID).Scan(&cnt); err != nil {
+		return false, err
+	}
+	if cnt > 0 {
+		return false, errors.New("article has progress")
+	}
+
+	// Delete
+	res, err := db.Exec(`DELETE FROM articles WHERE id = ?`, articleID)
+	if err != nil {
+		return false, err
+	}
+	n, _ := res.RowsAffected()
+	return n > 0, nil
+}
