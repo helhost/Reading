@@ -13,8 +13,11 @@ import (
 
 // RegisterCourseRoutes wires the course endpoints.
 func RegisterCourseRoutes(mux *http.ServeMux, db *sql.DB) {
-	// Auth required for both GET (my courses) and POST (create)
+	// My courses + create (both auth)
 	mux.HandleFunc("/courses", session.RequireAuth(db, coursesHandler(db)))
+
+	// Catalog (member-only view)
+	mux.HandleFunc("/course-catalog", session.RequireAuth(db, courseCatalogHandler(db)))
 }
 
 // Dispatcher for /courses (auth already applied by middleware).
@@ -59,6 +62,45 @@ func getMyCoursesForUniversityHandler(db *sql.DB) http.HandlerFunc {
 		}
 
 		list, err := ListMyCoursesByUniversity(db, uid, uniID)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		util.WriteJSON(w, list, http.StatusOK)
+	}
+}
+
+// GET /course-catalog?universityId=UUID
+// Returns ALL courses for the university (not just the caller’s enrollments).
+func courseCatalogHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		uid, ok := session.UserIDFromCtx(r.Context())
+		if !ok {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		uniID := strings.TrimSpace(r.URL.Query().Get("universityId"))
+		if uniID == "" {
+			http.Error(w, "universityId is required", http.StatusBadRequest)
+			return
+		}
+
+		// Must be a member of the university to view the catalog
+		isMember, err := membership.IsMember(db, uid, uniID)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		if !isMember {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+
+		list, err := ListCoursesByUniversity(db, uniID)
 		if err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
