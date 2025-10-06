@@ -36,6 +36,18 @@ func AddEnrollment(db *sql.DB, userID string, courseID int64) (bool, Enrollment,
   return created, Enrollment{UserID: userID, CourseID: courseID}, nil
 }
 
+func RemoveEnrollment(db *sql.DB, userID string, courseID int64) (bool, error) {
+  res, err := db.Exec(`
+    DELETE FROM user_courses
+     WHERE user_id = ? AND course_id = ?
+  `, userID, courseID)
+  if err != nil {
+    return false, err
+  }
+  n, _ := res.RowsAffected()
+  return n > 0, nil
+}
+
 // CourseUniversity returns the university_id owning this course (for auth checks).
 func CourseUniversity(db *sql.DB, courseID int64) (string, error) {
   var uniID string
