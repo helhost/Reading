@@ -56,6 +56,4 @@ class CourseService {
 }
 
 const API_BASE = "/api";
-
-const courseService = new CourseService(API_BASE);
-export default courseService;
+export default new CourseService(API_BASE);

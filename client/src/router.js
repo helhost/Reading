@@ -5,6 +5,7 @@ import UniversityHomePage from "./pages/UniversityHomePage.js";
 
 
 export const router = new Navigo("/", { hash: true });
+window.router = router;
 
 export function initRoutes() {
   router
@@ -12,7 +13,7 @@ export function initRoutes() {
     .on("/login", () => LoginPage())
     .on("/universities", () => UniversityPage())
     .on("/universities/:slug", ({ data }) => UniversityHomePage(data.slug))
-    .notFound(() => console.log("route: 404"));
+    .notFound(() => router.navigate("/"));
 
   router.resolve();
   router.updatePageLinks();

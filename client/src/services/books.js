@@ -78,5 +78,4 @@ class BookService {
 }
 
 const API_BASE = "/api";
-const bookService = new BookService(API_BASE);
-export default bookService;
+export default new BookService(API_BASE);
