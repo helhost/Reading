@@ -1,4 +1,4 @@
-export default function Card({ title, actionLabel, onAction }) {
+export default function Card({ title, actionLabel, onAction, onClick } = {}) {
   const card = document.createElement("div");
   card.className = "card";
 
@@ -15,10 +15,19 @@ export default function Card({ title, actionLabel, onAction }) {
     const btn = document.createElement("button");
     btn.className = "card-action-btn";
     btn.textContent = actionLabel;
-    btn.addEventListener("click", onAction);
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation(); // prevent firing onClick
+      onAction(e);
+    });
     header.appendChild(btn);
   }
 
   card.appendChild(header);
+
+  if (onClick) {
+    card.classList.add("card--clickable");
+    card.addEventListener("click", onClick);
+  }
+
   return card;
 }

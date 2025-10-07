@@ -13,6 +13,7 @@ export default async function UniversityPage() {
   const root = ensureRoot();
   root.innerHTML = "";
 
+  // containers
   const list = document.createElement("div");
   list.className = "uni-container";
 
@@ -29,21 +30,26 @@ export default async function UniversityPage() {
   root.append(list, footer);
 
   // state
-  let allUnis = [];
-  let myMemberships = [];
-  let myIds = new Set();
+  let allUnis = [];       // [{ id, name }]
+  let myMemberships = []; // [{ universityId, ... }]
+  let myIds = new Set();  // Set<string>
 
   await refresh();
 
   async function refresh() {
-    const [my, all] = await Promise.all([
-      universityService.getMyUniversities(),
-      universityService.getAll(),
-    ]);
-    myMemberships = my;
-    allUnis = all;
-    myIds = new Set(myMemberships.map(m => m.universityId));
-    renderJoined();
+    try {
+      const [my, all] = await Promise.all([
+        universityService.getMyUniversities(),
+        universityService.getAll(),
+      ]);
+      myMemberships = my;
+      allUnis = all;
+      myIds = new Set(myMemberships.map(m => m.universityId));
+      renderJoined();
+    } catch (err) {
+      console.error(err);
+      Toast("error", err?.message || "Failed to load universities");
+    }
   }
 
   function renderJoined() {
@@ -76,10 +82,19 @@ export default async function UniversityPage() {
             Toast("error", err?.message || "Failed to leave");
           }
         },
+        onClick: () => {
+          if (window.router?.navigate) {
+            window.router.navigate(`/universities/${id}`, { callHandler: true, updateBrowserURL: true });
+          } else {
+            location.hash = `#/universities/${id}`;
+          }
+        },
       });
 
       list.appendChild(card);
     }
+
+    window.router?.updatePageLinks?.();
   }
 
   function openJoinModal() {
@@ -112,7 +127,6 @@ export default async function UniversityPage() {
         const name = v.trim();
         if (!name) return "Name is required";
         if (name.length > 80) return "Keep it under 80 characters";
-        // prevent dup UI-side (server will still validate)
         if (allUnis.some(u => u.name.toLowerCase() === name.toLowerCase())) {
           return "A university with this name already exists";
         }
@@ -120,11 +134,9 @@ export default async function UniversityPage() {
       },
       onSubmit: async (name) => {
         try {
-          const created = await universityService.create(name);
+          const created = await universityService.create(name.trim());
           Toast("success", `Created ${created.name}`);
           await refresh();
-          // optionally: auto-open join modal filtered to the new one
-          // await universityService.join(created.id); await refresh();
         } catch (e) {
           Toast("error", e?.message || "Failed to create");
         }
@@ -133,6 +145,7 @@ export default async function UniversityPage() {
   }
 }
 
+/* tiny helper */
 function ensureRoot() {
   let node = document.getElementById("app");
   if (!node) {
