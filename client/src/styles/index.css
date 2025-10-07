@@ -4,6 +4,15 @@
   --text-color: #111;
   --border-color: color-mix(in oklab, var(--text-color) 18%, transparent);
   --shadow-color: rgba(0, 0, 0, 0.22);
+
+  /* ===== Status color palette ===== */
+  --info:    #7baee6;
+  --success: #7bd88f;
+  --warn:    #ffd27a;
+  --error:   #e68a94;
+
+  --white:   #ffffff;
+  --black:   #000000;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -311,3 +320,54 @@ body {
   }
 }
 
+
+/* ===== Toasts (top, course-box width, slide/fade) ===== */
+
+#toast-root {
+  position: fixed;
+  top: 12px;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  width: 70%;
+  max-width: 1000px;
+  padding: 0.9rem 1rem;
+  border-radius: 10px;
+  box-shadow: 0 12px 40px var(--shadow-color);
+  color: #fff;
+  font-size: 14px;
+  border: 1px solid rgba(255,255,255,.08);
+  opacity: 0;
+  transform: translateY(-14px);
+  transition: opacity .22s ease, transform .22s ease;
+}
+
+/* mobile: mirror .course-box breakpoint */
+@media (max-width: 600px) {
+  .toast { width: 90%; }
+}
+
+/* animated states */
+.toast--show {
+  opacity: 1;
+  transform: translateY(0);
+}
+.toast--hide {
+  opacity: 0;
+  transform: translateY(-10px); /* slide back up on dismiss */
+}
+
+/* semantic colors via root variables */
+.toast--info    { background: var(--info);    color: var(--white) }
+.toast--success { background: var(--success); color: var(--black) }
+.toast--warn    { background: var(--warn);    color: var(--black) }
+.toast--error   { background: var(--error);   color: var(--white) }
