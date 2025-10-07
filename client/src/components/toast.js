@@ -1,4 +1,4 @@
-export function toast(type, message, opts = {}) {
+export function Toast(type, message, opts = {}) {
   const { timeout = 2000 } = opts;
 
   // 1) Ensure a single global container outside #app

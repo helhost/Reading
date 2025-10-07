@@ -1,5 +1,5 @@
 import auth from "../services/auth.js";
-import { toast } from "../components/Toast.js";
+import { Toast } from "../components/Toast.js";
 
 export async function getMe() {
   try {
@@ -7,7 +7,7 @@ export async function getMe() {
     if (me) return me;
   } catch (_) {
   }
-  toast("warn", "Unauthorized");
+  Toast("warn", "Unauthorized");
   location.hash = "#/login";
   return null;
 }

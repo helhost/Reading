@@ -1,11 +1,11 @@
 import auth from "../services/auth.js";
-import { toast } from "../components/Toast.js";
+import { Toast } from "../components/Toast.js";
 
 export default async function LoginPage() {
 
   const me = await auth.me();
   if (me) {
-    toast("warn", "Already logged in");
+    Toast("warn", "Already logged in");
     if (window.router?.navigate) {
       window.router.navigate("/", { callHandler: true, updateBrowserURL: true });
     } else {
@@ -62,7 +62,7 @@ export default async function LoginPage() {
         ? await auth.login(emailVal, passVal)
         : await auth.register(emailVal, passVal);
 
-      toast("success", mode === "login" ? "Welcome back!" : "Account created!");
+      Toast("success", mode === "login" ? "Welcome back!" : "Account created!");
 
       if (window.router?.navigate) {
         window.router.navigate("/", { callHandler: true, updateBrowserURL: true });
@@ -72,7 +72,7 @@ export default async function LoginPage() {
 
       return user;
     } catch (err) {
-      toast("error", err?.message || "Something went wrong");
+      Toast("error", err?.message || "Something went wrong");
     } finally {
       submit.disabled = false;
     }
