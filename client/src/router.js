@@ -3,9 +3,21 @@ import LoginPage from "./pages/LoginPage.js";
 import UniversityPage from "./pages/UniversityPage.js";
 import UniversityHomePage from "./pages/UniversityHomePage.js";
 
-
 export const router = new Navigo("/", { hash: true });
 window.router = router;
+
+router.hooks({
+  before: (done) => {
+    let root = document.getElementById("app");
+    if (!root) {
+      root = document.createElement("main");
+      root.id = "app";
+      document.body.appendChild(root);
+    }
+    root.innerHTML = "";     // <-- clears previous view
+    done();
+  },
+});
 
 export function initRoutes() {
   router

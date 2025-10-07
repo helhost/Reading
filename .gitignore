@@ -5,3 +5,6 @@ node_modules
 # Testing
 alice.txt
 bob.txt
+
+# temp
+client/src/old
