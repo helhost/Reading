@@ -132,15 +132,20 @@ export default async function UniversityPage() {
         }
         return null;
       },
+
       onSubmit: async (name) => {
         try {
           const created = await universityService.create(name.trim());
-          Toast("success", `Created ${created.name}`);
+          // Join right after create (endpoint is idempotent)
+          await universityService.join(created.id);
+
+          Toast("success", `Created & joined ${created.name}`);
           await refresh();
+
         } catch (e) {
-          Toast("error", e?.message || "Failed to create");
+          Toast("error", e?.message || "Failed to create & join");
         }
-      },
+      }
     });
   }
 }
