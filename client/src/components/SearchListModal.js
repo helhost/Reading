@@ -5,7 +5,7 @@ import MiniCard from "./MiniCard.js";
 // getTitle(item): string
 // onPick(item): void (modal auto-closes after onPick runs)
 // actionLabel: string (button label on each mini-card)
-export function openSearchListModal({
+export function OpenSearchListModal({
   title = "Select item",
   items = [],
   getTitle = (x) => String(x),
@@ -73,5 +73,3 @@ export function openSearchListModal({
 
   return m; // caller can also close programmatically if needed
 }
-
-export default openSearchListModal;

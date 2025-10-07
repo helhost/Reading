@@ -1,8 +1,10 @@
 import { getMe } from "../util/index.js";
 import universityService from "../services/universities.js";
 import Card from "../components/Card.js";
-import openSearchListModal from "../components/SearchListModal.js";
+import { OpenSearchListModal } from "../components/SearchListModal.js";
 import { Toast } from "../components/Toast.js";
+
+import Button from "../components/Button.js";
 
 export default async function UniversityPage() {
   const me = await getMe();
@@ -13,14 +15,38 @@ export default async function UniversityPage() {
 
   // containers
   const list = document.createElement("div");
-  list.className = "course-container";
+  list.className = "uni-container";
 
   const footer = document.createElement("div");
-  footer.className = "course-footer";
+  footer.className = "uni-footer";
 
-  const addBtn = document.createElement("button");
-  addBtn.className = "add-book-btn";
-  addBtn.textContent = "＋ Add university";
+  const addBtn = Button({
+    label: "＋ Add university",
+    type: "primary",
+    onClick: () => {
+      const remaining = allUnis.filter(u => !myIds.has(u.id));
+      if (!remaining.length) {
+        Toast("info", "No more universities to join.");
+        return;
+      }
+      OpenSearchListModal({
+        title: "Join a university",
+        items: remaining,
+        getTitle: (u) => u.name,
+        actionLabel: "Join",
+        onPick: async (u) => {
+          try {
+            await universityService.join(u.id);
+            Toast("success", `Joined ${u.name}`);
+            await refresh();
+          } catch (e) {
+            Toast("error", e?.message || "Failed to join");
+          }
+        },
+      });
+    },
+  });
+
 
   footer.appendChild(addBtn);
   root.append(list, footer);
@@ -32,30 +58,6 @@ export default async function UniversityPage() {
 
   // initial load
   await refresh();
-
-  // join flow (picker)
-  addBtn.addEventListener("click", () => {
-    const remaining = allUnis.filter(u => !myIds.has(u.id));
-    if (!remaining.length) {
-      Toast("info", "No more universities to join.");
-      return;
-    }
-    openSearchListModal({
-      title: "Join a university",
-      items: remaining,
-      getTitle: (u) => u.name,
-      actionLabel: "Join",
-      onPick: async (u) => {
-        try {
-          await universityService.join(u.id);
-          Toast("success", `Joined ${u.name}`);
-          await refresh(); // update UI after success
-        } catch (e) {
-          Toast("error", e?.message || "Failed to join");
-        }
-      },
-    });
-  });
 
   // leave flow
   async function leaveUni(id, name) {

@@ -320,6 +320,51 @@ body {
   }
 }
 
+
+/* ====== Button Component ====== */
+
+.btn {
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform .1s ease, filter .1s ease;
+  background: color-mix(in oklab, var(--text-color) 8%, transparent);
+  color: var(--text-color);
+}
+
+.btn:hover:not(:disabled) {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Semantic variants */
+.btn--primary {
+  background: var(--info);
+  color: var(--white);
+}
+
+.btn--success {
+  background: var(--success);
+  color: var(--black);
+}
+
+.btn--warn {
+  background: var(--warn);
+  color: var(--black);
+}
+
+.btn--danger {
+  background: var(--error);
+  color: var(--white);
+}
+
 /* ===== Card Component ===== */
 
 .card {
@@ -516,3 +561,38 @@ body {
 .toast--success { background: var(--success); color: var(--black) }
 .toast--warn    { background: var(--warn);    color: var(--black) }
 .toast--error   { background: var(--error);   color: var(--white) }
+
+
+
+
+/* ==============================================================*/
+/* ==============================================================*/
+/* ======================== Page Layouts ========================*/
+/* ==============================================================*/
+/* ==============================================================*/
+
+/* ====== University layout ====== */
+
+.uni-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.uni-footer {
+  width: 70%;
+  margin: 1rem auto 0 auto;
+  display: flex;
+  justify-content: flex-start;
+}
+
+@media (max-width: 600px) {
+  .uni-footer {
+    width: 90%;
+    justify-content: center;
+  }
+}
+
+
