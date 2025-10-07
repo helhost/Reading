@@ -1,75 +1,123 @@
-import openModal from "./Modal.js";
-import MiniCard from "./MiniCard.js";
+import Button from "./Button.js";
 
-// items: array<any>
-// getTitle(item): string
-// onPick(item): void (modal auto-closes after onPick runs)
-// actionLabel: string (button label on each mini-card)
+let _openOverlay = null;
+
 export function OpenSearchListModal({
-  title = "Select item",
+  title = "Select",
   items = [],
-  getTitle = (x) => String(x),
-  onPick,
+  getTitle = (x) => String(x ?? ""),
   actionLabel = "Select",
-} = {}) {
-  const m = openModal({ title });
+  onPick = () => { },
+  footerLabel,
+  onFooterClick,
+}) {
+  closeModal(); // ensure single instance
 
-  const wrap = document.createElement("div");
-  wrap.className = "searchlist";
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeModal();
+  });
 
-  // search input
+  const card = document.createElement("div");
+  card.className = "modal-card";
+  card.addEventListener("click", (e) => e.stopPropagation());
+
+  // header
+  const header = document.createElement("div");
+  header.className = "modal-header";
+
+  const h = document.createElement("h3");
+  h.className = "modal-title";
+  h.textContent = title;
+
+  const closeBtn = document.createElement("button");
+  closeBtn.className = "modal-close";
+  closeBtn.type = "button";
+  closeBtn.textContent = "×";
+  closeBtn.addEventListener("click", closeModal);
+
+  header.append(h, closeBtn);
+
+  // body
+  const body = document.createElement("div");
+  body.className = "modal-body";
+
   const input = document.createElement("input");
-  input.type = "search";
   input.className = "searchlist__input";
   input.placeholder = "Search…";
 
-  // list container
   const list = document.createElement("div");
   list.className = "searchlist__list";
 
-  wrap.append(input, list);
-  m.setBody(wrap);
-
-  // render helper
-  function render(filtered) {
+  function render(filter = "") {
     list.innerHTML = "";
-    if (!filtered.length) {
-      const empty = document.createElement("div");
-      empty.className = "searchlist__empty";
-      empty.textContent = "No matches.";
-      list.appendChild(empty);
-      return;
-    }
-    for (const item of filtered) {
-      const card = MiniCard({
-        title: getTitle(item),
-        actionLabel,
-        onAction: () => {
-          try { onPick?.(item); }
-          finally { m.close(); }
-        },
+    const q = filter.trim().toLowerCase();
+    const filtered = q
+      ? items.filter((it) => getTitle(it).toLowerCase().includes(q))
+      : items;
+
+    for (const it of filtered) {
+      const row = document.createElement("div");
+      row.className = "mini-card";
+
+      const titleEl = document.createElement("div");
+      titleEl.className = "mini-card__title";
+      titleEl.textContent = getTitle(it);
+
+      const btn = document.createElement("button");
+      btn.className = "mini-card__btn";
+      btn.type = "button";
+      btn.textContent = actionLabel;
+      btn.addEventListener("click", async () => {
+        closeModal();
+        onPick(it);
       });
-      list.appendChild(card);
+
+      row.append(titleEl, btn);
+      list.appendChild(row);
     }
   }
 
-  // initial render (unsorted minimalism)
-  render(items);
+  input.addEventListener("input", () => render(input.value));
+  render();
 
-  // simple debounced filter
-  let t = null;
-  input.addEventListener("input", () => {
-    clearTimeout(t);
-    const q = input.value.trim().toLowerCase();
-    t = setTimeout(() => {
-      if (!q) return render(items);
-      const filtered = items.filter((it) => getTitle(it).toLowerCase().includes(q));
-      render(filtered);
-    }, 120);
-  });
+  body.append(input, list);
 
-  // focus
-  setTimeout(() => input.focus(), 0);
+  // footer (OPTIONAL)
+  let footer;
+  if (footerLabel && typeof onFooterClick === "function") {
+    footer = document.createElement("div");
+    footer.className = "modal-footer";
 
-  return m; // caller can also close programmatically if needed
+    const footerBtn = Button({
+      label: footerLabel,
+      type: "primary",
+      onClick: () => {
+        closeModal();
+        onFooterClick();
+      },
+    });
+
+    footer.appendChild(footerBtn);
+  }
+
+  // assemble
+  card.append(header, body, ...(footer ? [footer] : []));
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  // ESC to close
+  const esc = (e) => e.key === "Escape" && closeModal();
+  document.addEventListener("keydown", esc);
+
+  _openOverlay = { overlay, esc };
+}
+
+export function closeModal() {
+  if (_openOverlay) {
+    document.removeEventListener("keydown", _openOverlay.esc);
+    _openOverlay.overlay.remove();
+    _openOverlay = null;
+  }
 }

@@ -2,8 +2,8 @@ import { getMe } from "../util/index.js";
 import universityService from "../services/universities.js";
 import Card from "../components/Card.js";
 import { OpenSearchListModal } from "../components/SearchListModal.js";
+import { OpenInputModal } from "../components/InputModal.js";
 import { Toast } from "../components/Toast.js";
-
 import Button from "../components/Button.js";
 
 export default async function UniversityPage() {
@@ -13,7 +13,6 @@ export default async function UniversityPage() {
   const root = ensureRoot();
   root.innerHTML = "";
 
-  // containers
   const list = document.createElement("div");
   list.className = "uni-container";
 
@@ -23,68 +22,28 @@ export default async function UniversityPage() {
   const addBtn = Button({
     label: "＋ Add university",
     type: "primary",
-    onClick: () => {
-      const remaining = allUnis.filter(u => !myIds.has(u.id));
-      if (!remaining.length) {
-        Toast("info", "No more universities to join.");
-        return;
-      }
-      OpenSearchListModal({
-        title: "Join a university",
-        items: remaining,
-        getTitle: (u) => u.name,
-        actionLabel: "Join",
-        onPick: async (u) => {
-          try {
-            await universityService.join(u.id);
-            Toast("success", `Joined ${u.name}`);
-            await refresh();
-          } catch (e) {
-            Toast("error", e?.message || "Failed to join");
-          }
-        },
-      });
-    },
+    onClick: openJoinModal,
   });
-
 
   footer.appendChild(addBtn);
   root.append(list, footer);
 
   // state
-  let allUnis = [];          // [{ id, name }]
-  let myMemberships = [];    // [{ universityId }]
-  let myIds = new Set();     // Set<string>
+  let allUnis = [];
+  let myMemberships = [];
+  let myIds = new Set();
 
-  // initial load
   await refresh();
 
-  // leave flow
-  async function leaveUni(id, name) {
-    try {
-      await universityService.leave(id);
-      Toast("success", `Left ${name}`);
-      await refresh(); // update UI after success
-    } catch (e) {
-      Toast("error", e?.message || "Failed to leave");
-    }
-  }
-
-  // fetch + render
   async function refresh() {
-    try {
-      const [my, all] = await Promise.all([
-        universityService.getMyUniversities(),
-        universityService.getAll(),
-      ]);
-      myMemberships = my;
-      allUnis = all;
-      myIds = new Set(myMemberships.map(m => m.universityId));
-      renderJoined();
-    } catch (err) {
-      console.error(err);
-      Toast("error", err?.message || "Failed to load universities");
-    }
+    const [my, all] = await Promise.all([
+      universityService.getMyUniversities(),
+      universityService.getAll(),
+    ]);
+    myMemberships = my;
+    allUnis = all;
+    myIds = new Set(myMemberships.map(m => m.universityId));
+    renderJoined();
   }
 
   function renderJoined() {
@@ -107,19 +66,73 @@ export default async function UniversityPage() {
       const card = Card({
         title: name,
         actionLabel: "Leave",
-        onAction: (e) => {
-          // prevent any parent click handlers later
+        onAction: async (e) => {
           e?.stopPropagation?.();
-          leaveUni(id, name);
+          try {
+            await universityService.leave(id);
+            Toast("success", `Left ${name}`);
+            await refresh();
+          } catch (err) {
+            Toast("error", err?.message || "Failed to leave");
+          }
         },
       });
 
       list.appendChild(card);
     }
   }
+
+  function openJoinModal() {
+    const remaining = allUnis.filter(u => !myIds.has(u.id));
+    OpenSearchListModal({
+      title: "Join a university",
+      items: remaining,
+      getTitle: (u) => u.name,
+      actionLabel: "Join",
+      onPick: async (u) => {
+        try {
+          await universityService.join(u.id);
+          Toast("success", `Joined ${u.name}`);
+          await refresh();
+        } catch (e) {
+          Toast("error", e?.message || "Failed to join");
+        }
+      },
+      footerLabel: "Create a new university",
+      onFooterClick: openCreateModal,
+    });
+  }
+
+  function openCreateModal() {
+    OpenInputModal({
+      title: "Create a university",
+      placeholder: "e.g., University of Somewhere",
+      submitLabel: "Create",
+      validate: (v) => {
+        const name = v.trim();
+        if (!name) return "Name is required";
+        if (name.length > 80) return "Keep it under 80 characters";
+        // prevent dup UI-side (server will still validate)
+        if (allUnis.some(u => u.name.toLowerCase() === name.toLowerCase())) {
+          return "A university with this name already exists";
+        }
+        return null;
+      },
+      onSubmit: async (name) => {
+        try {
+          const created = await universityService.create(name);
+          Toast("success", `Created ${created.name}`);
+          await refresh();
+          // optionally: auto-open join modal filtered to the new one
+          // await universityService.join(created.id); await refresh();
+        } catch (e) {
+          Toast("error", e?.message || "Failed to create");
+        }
+      },
+    });
+  }
 }
 
-/* tiny helper */
 function ensureRoot() {
   let node = document.getElementById("app");
   if (!node) {
