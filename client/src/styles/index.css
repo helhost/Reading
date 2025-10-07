@@ -539,6 +539,57 @@ body {
 }
 .mini-card__btn:hover { transform: scale(1.04); filter: brightness(1.06); }
 
+
+/* ===== ExpandableCard Component ===== */
+
+.exp-card {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.1s ease-in-out, filter 0.1s ease-in-out;
+}
+
+.exp-card:hover {
+  transform: scale(1.01);
+  filter: brightness(1.05);
+}
+
+.exp-card__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding-right: 1.75rem; /* room for indicator */
+}
+
+.exp-card__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.exp-card__subtitle {
+  margin: 0;
+  opacity: 0.85;
+}
+
+.exp-card__indicator {
+  position: absolute;
+  right: 0.75rem;
+  top: 0.75rem;
+  font-size: 1.1rem;
+  line-height: 1;
+  opacity: 0.9;
+  transition: transform 0.15s ease-in-out;
+}
+
+.exp-card[aria-expanded="false"] .exp-card__indicator {
+  transform: rotate(-90deg);
+}
+
+.exp-card__content {
+  margin-top: 0.75rem;
+}
+
+
 /* ===== Modal Component ===== */
 .modal-overlay {
   position: fixed;
