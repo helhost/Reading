@@ -1,5 +1,5 @@
 import auth from "../services/auth.js";
-import { toast } from "../components/toast.js";
+import { toast } from "../components/Toast.js";
 
 export default async function LoginPage() {
 

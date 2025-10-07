@@ -320,8 +320,48 @@ body {
   }
 }
 
+/* ===== Card Component ===== */
 
-/* ===== Toasts (top, course-box width, slide/fade) ===== */
+.card {
+  width: 70%;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background-color: var(--primary-color);
+  color: var(--text-color);
+  padding: 1rem;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  margin-bottom: 1rem;
+}
+
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.card-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.card-action-btn {
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: transform .1s ease, filter .1s ease;
+}
+.card-action-btn:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+
+
+/* ===== Toast Component ===== */
 
 #toast-root {
   position: fixed;
