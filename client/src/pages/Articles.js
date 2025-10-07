@@ -1,9 +1,26 @@
-export default function Articles(myCourses = [], remainingCourses = []) {
-  const my = Array.isArray(myCourses) ? myCourses : [];
-  const rem = Array.isArray(remainingCourses) ? remainingCourses : [];
+import CourseSection from "./CourseSection.js";
 
-  console.groupCollapsed("[Articles] course lists");
-  console.log("My courses (%d):", my.length, my);
-  console.log("Remaining courses (%d):", rem.length, rem);
-  console.groupEnd();
+export default function Articles(myCourses = [], remainingCourses = []) {
+  return CourseSection({
+    myCourses,
+    remainingCourses,
+    renderBody: (course) => {
+      const wrap = document.createElement("div");
+      wrap.className = "articles";
+
+      const ul = document.createElement("ul");
+      ul.className = "articles-list";
+      wrap.appendChild(ul);
+
+      const addBtn = document.createElement("button");
+      addBtn.type = "button";
+      addBtn.className = "add-article-btn";
+      addBtn.textContent = "＋ Add article";
+      addBtn.setAttribute("data-no-toggle", "");
+      addBtn.addEventListener("click", (e) => e.stopPropagation());
+      wrap.appendChild(addBtn);
+
+      return wrap;
+    },
+  });
 }

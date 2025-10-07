@@ -30,7 +30,6 @@ export default async function UniversityHomePage(slug, tab /* "books"|"articles"
   const content = document.createElement("section");
   content.className = "page-body";
   content.style.padding = "1rem";
-  content.textContent = `Tab: ${tab}`;
 
   root.append(sub, content);
 
