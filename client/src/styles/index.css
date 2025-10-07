@@ -285,7 +285,7 @@ body {
 .auth-message.is-error {
   color: crimson;
 }
-
+:
 .auth-form {
   display: grid;
   gap: .75rem;
@@ -304,29 +304,42 @@ body {
   position: sticky;
   top: 0;
   z-index: 500;
-  display: flex;
-  justify-content: space-between;
+
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  grid-template-areas: "left center right";
   align-items: center;
+  gap: 12px;
+
+  padding: 20px 16px;
   background: var(--primary-color);
   color: var(--text-color);
-  padding: 0.6rem 1rem;
-  font-size: 0.9rem;
   border-bottom: 1px solid color-mix(in oklab, var(--text-color) 15%, transparent);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
-/* left side: brand or user info */
+/* left: brand / user info */
 .banner__left {
+  grid-area: left;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
   font-weight: 500;
   font-size: 0.95rem;
   opacity: 0.9;
 }
 
-/* center: optional navigation */
+/* center: navigation links */
 .banner__center {
+  grid-area: center;
   display: flex;
-  gap: 1rem;
   align-items: center;
+  gap: 1rem;
+
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .banner__link {
@@ -335,20 +348,20 @@ body {
   opacity: 0.8;
   transition: opacity 0.15s ease, filter 0.15s ease;
 }
-
 .banner__link:hover {
   opacity: 1;
   filter: brightness(1.1);
 }
 
-/* right: buttons or actions */
+/* right: actions */
 .banner__right {
+  grid-area: right;
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  justify-self: end;
 }
 
-/* any bf-btn inside banner */
 .banner .bf-btn {
   font-size: 0.85rem;
   padding: 0.4rem 0.8rem;
@@ -359,26 +372,11 @@ body {
   cursor: pointer;
   transition: transform 0.1s ease, filter 0.1s ease;
 }
-
 .banner .bf-btn:hover {
   transform: scale(1.05);
   filter: brightness(1.1);
 }
 
-/* mobile adjustments */
-@media (max-width: 600px) {
-  .banner {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.4rem;
-    padding: 0.75rem 0.9rem;
-  }
-
-  .banner__center {
-    gap: 0.75rem;
-    flex-wrap: wrap;
-  }
-}
 
 /* ====== Button Component ====== */
 
