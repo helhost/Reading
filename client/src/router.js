@@ -4,28 +4,24 @@ import UniversityPage from "./pages/UniversityPage.js";
 import UniversityHomePage from "./pages/UniversityHomePage.js";
 
 export const router = new Navigo("/", { hash: true });
-window.router = router;
-
-router.hooks({
-  before: (done) => {
-    let root = document.getElementById("app");
-    if (!root) {
-      root = document.createElement("main");
-      root.id = "app";
-      document.body.appendChild(root);
-    }
-    root.innerHTML = "";     // <-- clears previous view
-    done();
-  },
-});
 
 export function initRoutes() {
+  window.router = router; // (so pages can call updatePageLinks)
+
   router
     .on("/", () => HomePage())
     .on("/login", () => LoginPage())
     .on("/universities", () => UniversityPage())
-    .on("/universities/:slug", ({ data }) => UniversityHomePage(data.slug))
-    .notFound(() => router.navigate("/"));
+
+    // base (no tab)
+    .on("/universities/:slug", ({ data }) => UniversityHomePage(data.slug, null))
+
+    // tabbed
+    .on("/universities/:slug/:tab", ({ data }) =>
+      UniversityHomePage(data.slug, (data.tab || "").toLowerCase())
+    )
+
+    .notFound(() => console.log("route: 404"));
 
   router.resolve();
   router.updatePageLinks();
