@@ -8,27 +8,27 @@ window.router = router; // helpful for programmatic nav from pages/components
 async function boot() {
   const user = await safeMe();
 
-  const links = [];
-
-  // mount banner
+  // mount banner (no center links; onHomeClick is mandatory)
   mountBanner({
     user,
-    links,
+    onHomeClick: () => {
+      router.navigate("/", { callHandler: true, updateBrowserURL: true });
+    },
     onLogout: async () => {
       try {
         await auth.logout();
-        updateBanner({ user: null, links });
+        updateBanner({ user: null });
         Toast("success", "Logged out");
         router.navigate("/login", { callHandler: true, updateBrowserURL: true });
       } catch (e) {
         Toast("error", e?.message || "Failed to log out");
       }
-      // rebind links for Navigo whenever banner DOM changes
+      // banner DOM changed (buttons re-created), so rebind Navigo
       router.updatePageLinks();
     },
   });
 
-  // ensure banner links are wired to Navigo
+  // ensure any other page links are wired to Navigo
   router.updatePageLinks();
 
   // start routes

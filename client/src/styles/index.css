@@ -306,16 +306,37 @@ body {
   z-index: 500;
 
   display: grid;
-  grid-template-columns: 1fr auto auto;
-  grid-template-areas: "left center right";
+  grid-template-columns: auto 1fr auto; /* home | left | right */
+  grid-template-areas: "home left right";
   align-items: center;
-  gap: 12px;
+  gap: 8px; /* keep the home icon very close to the left text */
 
   padding: 20px 16px;
   background: var(--primary-color);
   color: var(--text-color);
-  border-bottom: 1px solid color-mix(in oklab, var(--text-color) 15%, transparent);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+/* NEW: home button */
+.banner__home {
+  grid-area: home;
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--text-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.1s ease, filter 0.1s ease;
+}
+.banner__home:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+.banner__home:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--text-color) 35%, transparent);
+  outline-offset: 2px;
 }
 
 /* left: brand / user info */
@@ -327,30 +348,8 @@ body {
   white-space: nowrap;
 
   font-weight: 500;
-  font-size: 0.95rem;
+  font-size: 1.25rem;
   opacity: 0.9;
-}
-
-/* center: navigation links */
-.banner__center {
-  grid-area: center;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-
-  min-width: 0;
-  flex-wrap: wrap;
-}
-
-.banner__link {
-  text-decoration: none;
-  color: var(--text-color);
-  opacity: 0.8;
-  transition: opacity 0.15s ease, filter 0.15s ease;
-}
-.banner__link:hover {
-  opacity: 1;
-  filter: brightness(1.1);
 }
 
 /* right: actions */
@@ -376,8 +375,6 @@ body {
   transform: scale(1.05);
   filter: brightness(1.1);
 }
-
-
 
 /* ===== SubBanner (flex-balanced tabs) ===== */
 .subbanner {
