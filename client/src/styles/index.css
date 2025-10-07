@@ -714,6 +714,52 @@ body {
 }
 
 
+/* ===== Form Component ===== */
+
+.form-modal {
+  width: min(680px, 92vw);
+  padding: 8px;
+}
+
+.form {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.form-row {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.form-label {
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.form-input {
+  width: 90%;
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+}
+
+.form-input::placeholder {
+  opacity: 0.65;
+}
+
+.form-input:focus {
+  border-color: color-mix(in oklab, var(--text-color) 40%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--text-color) 14%, transparent);
+  filter: none;
+}
+
+.form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
 /* ===== Toast Component ===== */
 
 #toast-root {
