@@ -303,7 +303,7 @@ body {
 .banner {
   position: sticky;
   top: 0;
-  z-index: 500;
+  z-index: 1000;
 
   display: grid;
   grid-template-columns: auto 1fr auto; /* home | left | right */
@@ -379,8 +379,8 @@ body {
 /* ===== SubBanner (flex-balanced tabs) ===== */
 .subbanner {
   position: sticky;
-  top: 48px; /* adjust if banner height differs */
-  z-index: 450;
+  top: var(--banner-h); /* adjust if banner height differs */
+  z-index: 900;
   display: flex;
   justify-content: space-between;
   align-items: center;
