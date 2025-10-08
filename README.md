@@ -1,3 +1,3 @@
 # Reading
 
-A simple web-app to keep track of read material in different courses
+A web-app to keep track of read material (books and articles) and assignments for coursework
