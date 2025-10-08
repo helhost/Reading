@@ -63,6 +63,7 @@ export default async function LoginPage() {
         : await auth.register(emailVal, passVal);
 
       Toast("success", mode === "login" ? "Welcome back!" : "Account created!");
+      window.dispatchEvent(new CustomEvent("auth:changed", { detail: { user: user } }));
 
       if (window.router?.navigate) {
         window.router.navigate("/", { callHandler: true, updateBrowserURL: true });
