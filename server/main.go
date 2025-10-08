@@ -24,12 +24,11 @@ func main() {
 	}
 	defer db.Close()
 
-	if err := store.EnsureSchema(db); err != nil { log.Fatal("Failed to load schema", err) }
-	//if err := store.EnsureCalendar(db); err != nil { log.Fatal("Failed to load calendar schema", err) }
 
-	if err := store.Migrate_Calendar_AllKinds_IncludeCourse(db); err != nil {
-		log.Fatal("Failed to migrate calendar triggers", err)
-	}
+	// main.go (temporary for backfill deploy)
+	if err := store.EnsureSchema(db); err != nil { log.Fatal(err) }
+	if err := store.EnsureCalendar(db); err != nil { log.Fatal(err) }
+	if err := store.Backfill_Calendar_AllKindsIncludeCourse(db); err != nil { log.Fatal(err) }
 
 	// 2. API routes
 	apiMux := http.NewServeMux()
