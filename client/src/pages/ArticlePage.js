@@ -1,6 +1,6 @@
 import CourseSection from "./CourseSection.js";
 
-export default function Articles(myCourses = [], remainingCourses = []) {
+export default function ArticlePage(myCourses = [], remainingCourses = []) {
   return CourseSection({
     myCourses,
     remainingCourses,

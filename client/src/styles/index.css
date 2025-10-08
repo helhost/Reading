@@ -473,6 +473,11 @@ body {
 }
 
 
+@media (max-width: 600px) {
+  .card { width: 95%; }
+}
+
+
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -508,6 +513,8 @@ body {
   transform: scale(1.01);
   filter: brightness(1.05);
 }
+
+
 
 /* ===== Mini Card ===== */
 .mini-card {
@@ -649,6 +656,43 @@ body {
 @keyframes modal-fade {
   from { opacity: 0; }
   to   { opacity: 1; }
+}
+
+
+/* ===== Modal (Popover Support) ===== */
+.modal-overlay--clear {
+  /* keep outside-click close but remove dim */
+  background: transparent;
+}
+
+.modal-card--popover {
+  /* compact card for anchored popovers */
+  padding: 0.5rem 0.6rem;
+  border-radius: 10px;
+  min-width: 220px;
+  max-width: min(420px, 96vw);
+}
+
+.modal-header--compact {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 0.25rem 0.25rem 0 0.25rem;
+}
+
+/* Optional tiny caret */
+.modal-card--popover::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: var(--primary-color);
+  border-left: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-color);
+  transform: rotate(45deg);
+  top: -6px;            /* default assumes bottom placement */
+  left: 16px;
+  box-shadow: -2px -2px 2px rgba(0,0,0,0.02);
 }
 
 
@@ -812,7 +856,92 @@ body {
 .toast--error   { background: var(--error);   color: var(--white) }
 
 
+/* ===== DatePicker (popover) ===== */
+.datepicker-popover.modal-card--popover {
+  width: auto;
+  min-width: 240px;
+  max-width: 340px;
+  padding: 8px;
+  border-radius: 14px;
+}
 
+.dp-body { display: grid; gap: 8px; }
+
+.dp-row { display: flex; align-items: center; gap: 8px; }
+
+.dp-input {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--primary-color);
+  color: var(--text-color);
+  outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.dp-input:focus {
+  border-color: color-mix(in oklab, var(--text-color) 40%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--text-color) 14%, transparent);
+}
+
+/* quick chips */
+.dp-quick { justify-content: flex-start; flex-wrap: wrap; }
+
+.dp-chip {
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-color);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform .1s ease, filter .1s ease, background .1s ease;
+}
+.dp-chip:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+
+/* actions */
+.dp-actions { justify-content: flex-end; gap: 0.5rem; }
+
+/* ===== ChapterItem Component ===== */
+
+.chapter-box:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--text-color) 40%, transparent);
+  outline-offset: 2px;
+}
+
+/* small dot indicating a deadline exists */
+.chapter-box.has-deadline {
+  position: relative;
+}
+.chapter-box.has-deadline::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--warn);
+  opacity: 0.9;
+}
+
+.chapter-box.deadline-past::before {
+  background: var(--error);
+}
+
+/* ===== BookItem Component ===== */
+
+.book-item {
+  position: relative; /* ensures menu button positioning works reliably */
+}
+
+.book-item .book-menu-btn:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--text-color) 35%, transparent);
+  outline-offset: 2px;
+}
 
 /* ==============================================================*/
 /* ==============================================================*/
@@ -842,6 +971,61 @@ body {
     width: 90%;
     justify-content: center;
   }
+}
+
+
+/* === Compact popover=== */
+.modal-card.modal-card--popover {
+  width: auto;                 /* override global 720px */
+  min-width: 150px;
+  max-width: 380px;
+  padding: 0.5rem 0.6rem;
+  border-radius: 10px;
+}
+
+/* ===== Chapter actions popover ===== */
+.chapter-actions .modal-header { /* hide close header for this popover */
+  display: none;
+}
+.chapter-actions .modal-body {
+  padding: 0.5rem 0.6rem;
+}
+
+/* vertical stack: one row per action */
+.chapter-actions__col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* a single action row */
+.chapter-actions__row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* bigger, borderless calendar button */
+.chapter-actions__calendar {
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  color: var(--text-color);
+  font-size: 1.35rem;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  transition: transform .1s ease, filter .1s ease;
+}
+.chapter-actions__calendar:hover {
+  transform: scale(1.06);
+  filter: brightness(1.06);
+}
+
+.chapter-actions__deadline {
+  opacity: 0.9;
+  font-size: 0.95rem;
 }
 
 

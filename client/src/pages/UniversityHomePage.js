@@ -3,9 +3,9 @@ import SubBanner from "../components/SubBanner.js";
 import courseService from "../services/courses.js";
 import { Toast } from "../components/Toast.js";
 
-import Books from "./Books.js";
-import Articles from "./Articles.js";
-import Assignments from "./Assignments.js";
+import BookPage from "./BookPage.js";
+import ArticlePage from "./ArticlePage.js";
+import AssignmentPage from "./AssignmentPage.js";
 
 export default async function UniversityHomePage(slug, tab /* "books"|"articles"|"assignments"|null */) {
   const me = await getMe();
@@ -35,9 +35,9 @@ export default async function UniversityHomePage(slug, tab /* "books"|"articles"
 
   // Dispatch to the correct stub page: Books/Articles/Assignments
   const handlers = {
-    books: Books,
-    articles: Articles,
-    assignments: Assignments,
+    books: BookPage,
+    articles: ArticlePage,
+    assignments: AssignmentPage,
   };
 
   const handler = handlers[tab];
