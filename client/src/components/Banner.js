@@ -58,6 +58,17 @@ export function mountBanner({ user, onLogout, onHomeClick } = {}) {
   banner.append(homeBtn, left, right);
   document.body.prepend(banner);
 
+  const setBannerH = () => {
+    const h = banner.getBoundingClientRect().height; // includes borders
+    document.documentElement.style.setProperty("--banner-h", `${h}px`);
+  };
+
+  // set once after layout paints
+  requestAnimationFrame(setBannerH);
+
+  // keep it in sync on resize/content changes
+  window.addEventListener("resize", setBannerH);
+  new ResizeObserver(setBannerH).observe(banner);
   _bannerRoot = banner;
   return () => unmountBanner();
 }
