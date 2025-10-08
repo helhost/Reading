@@ -1,82 +1,113 @@
-class BookService {
-  constructor(apiBase) {
+class BooksService {
+  constructor(apiBase = "/api") {
     this.API_BASE = apiBase;
   }
 
-  async getAll() {
+  /**
+   * List books for a course (enrolled users only).
+   * GET /api/books?courseId=123
+   */
+  async getByCourse(courseId) {
+    const cid = Number(courseId);
+    if (!Number.isInteger(cid) || cid <= 0) throw new Error("Invalid courseId");
+
     try {
-      const res = await fetch(`${this.API_BASE}/books`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json();
+      const res = await fetch(
+        `${this.API_BASE}/books?courseId=${encodeURIComponent(String(cid))}`,
+        { headers: { Accept: "application/json" } }
+      );
+
+      if (!res.ok) {
+        if (res.status === 401) throw new Error("Unauthorized");
+        if (res.status === 403) throw new Error("Enrollment required");
+        if (res.status === 404) throw new Error("Course not found");
+        throw new Error(`HTTP ${res.status}`);
+      }
+      return await res.json(); // Array<Book>
     } catch (err) {
-      console.error("Request failed:", err);
+      console.error("Books getByCourse failed:", err);
       throw err;
     }
   }
 
-  async addProgress(id, chapter) {
-    try {
-      const res = await fetch(`${this.API_BASE}/books/${id}/progress`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        body: JSON.stringify({ chapter, action: "add" }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json(); // returns []int of completed chapters
-    } catch (err) {
-      console.error("Add progress failed:", err);
-      throw err;
-    }
-  }
+  /**
+   * Create a book (membership in owning university required).
+   * POST /api/books
+   */
+  async create({ courseId, title, author, numChapters, location }) {
+    const cid = Number(courseId);
+    const n = Number(numChapters);
+    const t = String(title ?? "").trim();
+    const a = String(author ?? "").trim();
+    const loc = location == null ? undefined : String(location).trim();
 
-  async removeProgress(id, chapter) {
-    try {
-      const res = await fetch(`${this.API_BASE}/books/${id}/progress`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        body: JSON.stringify({ chapter, action: "remove" }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json(); // returns []int of completed chapters
-    } catch (err) {
-      console.error("Remove progress failed:", err);
-      throw err;
-    }
-  }
+    if (!Number.isInteger(cid) || cid <= 0) throw new Error("Invalid courseId");
+    if (!t) throw new Error("Title is required");
+    if (!a) throw new Error("Author is required");
+    if (!Number.isInteger(n) || n <= 0) throw new Error("numChapters must be a positive integer");
 
-  async create({ courseId, title, author, numChapters, link }) {
+    const body = {
+      courseId: cid,
+      title: t,
+      author: a,
+      numChapters: n,
+      ...(loc ? { location: loc } : {}),
+    };
+
     try {
       const res = await fetch(`${this.API_BASE}/books`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json",
+          Accept: "application/json",
         },
-        body: JSON.stringify({ courseId, title, author, numChapters, link }),
+        body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
+
+      if (!res.ok) {
+        if (res.status === 401) throw new Error("Unauthorized");
+        if (res.status === 403) throw new Error("Membership required");
+        if (res.status === 400) throw new Error("Bad request");
+        throw new Error(`HTTP ${res.status}`);
+      }
+      return await res.json(); // created { id, courseId, title, author }
     } catch (err) {
-      console.error("Create failed:", err);
+      console.error("Books create failed:", err);
       throw err;
     }
   }
 
-  async delete(id) {
+  /**
+   * Delete a book (enrolled users only).
+   * DELETE /api/books  body: { bookId }
+   * Fails with 409 if any chapter has progress.
+   */
+  async delete(bookId) {
+    const bid = Number(bookId);
+    if (!Number.isInteger(bid) || bid <= 0) throw new Error("Invalid bookId");
+
     try {
-      const res = await fetch(`${this.API_BASE}/books/${id}`, {
+      const res = await fetch(`${this.API_BASE}/books`, {
         method: "DELETE",
-        headers: { "Accept": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ bookId: bid }),
       });
-      if (!res.ok && res.status !== 204) throw new Error(`HTTP ${res.status}`);
-      return true;
+
+      if (res.status === 204) return true;
+      if (res.status === 404) throw new Error("Book not found");
+      if (res.status === 401) throw new Error("Unauthorized");
+      if (res.status === 403) throw new Error("Enrollment required");
+      if (res.status === 409) throw new Error("Cannot delete: chapter progress exists");
+      throw new Error(`HTTP ${res.status}`);
     } catch (err) {
-      console.error("Delete failed:", err);
+      console.error("Books delete failed:", err);
       throw err;
     }
   }
 }
 
 const API_BASE = "/api";
-const bookService = new BookService(API_BASE);
-export default bookService;
+export default new BooksService(API_BASE);
