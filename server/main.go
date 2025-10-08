@@ -24,11 +24,8 @@ func main() {
 	}
 	defer db.Close()
 
-
-	// main.go (temporary for backfill deploy)
 	if err := store.EnsureSchema(db); err != nil { log.Fatal(err) }
 	if err := store.EnsureCalendar(db); err != nil { log.Fatal(err) }
-	if err := store.Backfill_Calendar_AllKindsIncludeCourse(db); err != nil { log.Fatal(err) }
 
 	// 2. API routes
 	apiMux := http.NewServeMux()
