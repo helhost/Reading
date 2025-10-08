@@ -22,7 +22,7 @@ export function OpenFormModal({
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay";
   overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) closeFormModal();
+    if (e.target === overlay && !submitting) closeFormModal();
   });
 
   // card
@@ -42,7 +42,7 @@ export function OpenFormModal({
   closeBtn.className = "modal-close";
   closeBtn.type = "button";
   closeBtn.textContent = "×";
-  closeBtn.addEventListener("click", closeFormModal);
+  closeBtn.addEventListener("click", () => { if (!submitting) closeFormModal(); });
 
   header.append(h, closeBtn);
 
@@ -61,8 +61,9 @@ export function OpenFormModal({
   const toName = (label, explicit) => {
     if (explicit) return explicit;
     const base =
-      String(label).toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") ||
-      "field";
+      String(label).toLowerCase().trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "") || "field";
     const n = (nameCounts.get(base) || 0) + 1;
     nameCounts.set(base, n);
     return n === 1 ? base : `${base}-${n}`;
@@ -106,14 +107,14 @@ export function OpenFormModal({
     form.appendChild(row);
   }
 
-  // footer
+  // footer (INSIDE the form so submit works)
   const footer = document.createElement("div");
   footer.className = "modal-footer form-footer";
 
   const cancel = Button({
     label: cancelLabel,
     type: "default",
-    onClick: () => closeFormModal(),
+    onClick: () => { if (!submitting) closeFormModal(); },
   });
 
   const submit = document.createElement("button");
@@ -122,20 +123,13 @@ export function OpenFormModal({
   submit.textContent = submitLabel;
 
   footer.append(cancel, submit);
+  form.appendChild(footer);
 
   // state + helpers
   let submitting = false;
 
-  const setSubmitting = (is) => {
-    submitting = is;
-    submit.disabled = is || submit.disabled; // keep disabled if invalid
-    cancel.disabled = is;
-    rows.forEach(({ input }) => (input.disabled = is));
-  };
-
-  const updateSubmitState = () => {
-    if (submitting) return;
-    const allGood = rows.every(({ cfg, input }) => {
+  const isFormValid = () =>
+    rows.every(({ cfg, input }) => {
       if (!cfg.required) return true;
       const v = input.value.trim();
       if (cfg.type === "int") {
@@ -144,19 +138,27 @@ export function OpenFormModal({
       }
       return v.length > 0;
     });
-    submit.disabled = !allGood;
+
+  const updateSubmitState = () => {
+    submit.disabled = submitting || !isFormValid();
+  };
+
+  const setSubmitting = (is) => {
+    submitting = is;
+    rows.forEach(({ input }) => (input.disabled = is));
+    cancel.disabled = is;
+    updateSubmitState();
   };
 
   form.addEventListener("input", updateSubmitState);
-  // initial check
-  updateSubmitState();
+  updateSubmitState(); // initial
 
   // submit handler
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (submitting) return;
 
-    // field-level validity
+    // field-level validity & messages
     for (const { cfg, input } of rows) {
       input.setCustomValidity("");
       if (cfg.required && !input.value.trim()) {
@@ -180,11 +182,7 @@ export function OpenFormModal({
     for (const { cfg, input, fieldName } of rows) {
       const raw = input.value.trim();
       if (!raw && !cfg.required) continue;
-      if (cfg.type === "int") {
-        data[fieldName] = Number.parseInt(raw, 10);
-      } else {
-        data[fieldName] = raw;
-      }
+      data[fieldName] = cfg.type === "int" ? Number.parseInt(raw, 10) : raw;
     }
 
     try {
@@ -193,18 +191,20 @@ export function OpenFormModal({
     } catch (err) {
       console.error("Form submit failed:", err);
     } finally {
-      setSubmitting(false);
-      updateSubmitState();
+      // guard if modal was already closed by onSubmit
+      if (_openForm) {
+        setSubmitting(false);
+      }
     }
   });
 
   // assemble
   body.appendChild(form);
-  card.append(header, body, footer);
+  card.append(header, body);
   overlay.appendChild(card);
   document.body.appendChild(overlay);
 
-  // ESC to close (but not while submitting)
+  // ESC to close (not while submitting)
   const esc = (e) => e.key === "Escape" && !submitting && closeFormModal();
   document.addEventListener("keydown", esc);
 
@@ -222,3 +222,5 @@ export function closeFormModal() {
     _openForm = null;
   }
 }
+
+export default OpenFormModal;

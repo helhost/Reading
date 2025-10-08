@@ -1,6 +1,7 @@
 import CourseSection from "./CourseSection.js";
 import booksService from "../services/books.js";
 import chaptersService from "../services/chapters.js";
+import courseService from "../services/courses.js";
 import { OpenFormModal } from "../components/Form.js";
 import { Toast } from "../components/Toast.js";
 import BookItem from "../components/BookItem.js";
@@ -8,12 +9,18 @@ import openModal from "../components/Modal.js";
 import openDatePicker from "../components/DatePicker.js";
 import Button from "../components/Button.js";
 
+// Will hold the CourseSection API after mount
+let courseSectionAPI = null;
+
 export default function BookPage(myCourses = [], remainingCourses = []) {
-  return CourseSection({
+  // renderBody closes over courseSectionAPI; it's assigned right after mount.
+  const section = CourseSection({
     myCourses,
     remainingCourses,
     renderBody: (course) => renderCourseBooks(course),
   });
+  courseSectionAPI = section; // now available to leave handler
+  return section;
 }
 
 function renderCourseBooks(course) {
@@ -29,27 +36,68 @@ function renderCourseBooks(course) {
   loading.textContent = "Loading books…";
   wrap.appendChild(loading);
 
-  // Add book
-  const addBtn = document.createElement("button");
-  addBtn.type = "button";
-  addBtn.className = "add-book-btn";
-  addBtn.textContent = "＋ Add book";
-  addBtn.setAttribute("data-no-toggle", "");
-  addBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    openCreateBookModal(course, {
-      onCreated: (book) => {
-        const item = BookItem({
-          book,
-          chapters: synthesizeChapters(book.numChapters),
-          onMeatballClick: (ctx) => openBookMenu(ctx),
-          onChapterClick: (ctx) => openChapterActions(ctx),
-        });
-        list.appendChild(item);
-      },
-    });
+  // Actions row: Add book + Leave course (both via Button component)
+  const actions = document.createElement("div");
+  actions.className = "books-actions";
+
+  const addBtn = Button({
+    label: "＋ Add book",
+    type: "primary",
+    onClick: (e) => {
+      e?.stopPropagation?.();
+      openCreateBookModal(course, {
+        onCreated: (book) => {
+          const item = BookItem({
+            book,
+            chapters: synthesizeChapters(book.numChapters),
+            onMeatballClick: (ctx) => openBookMenu(ctx),
+            onChapterClick: (ctx) => openChapterActions(ctx),
+          });
+          list.appendChild(item);
+        },
+      });
+    },
   });
-  wrap.appendChild(addBtn);
+  addBtn.setAttribute("data-no-toggle", "");
+
+  const leaveBtn = Button({
+    label: "Leave course",
+    type: "danger",
+    onClick: async (e) => {
+      e?.stopPropagation?.();
+      if (!confirm(`Leave ${course.code}: ${course.name}?`)) return;
+      try {
+        await courseService.unenroll(course.id);
+        Toast("success", `Left ${course.code}`);
+
+        // Preferred: update CourseSection state so remaining/enroll modal refreshes
+        if (courseSectionAPI?.getState && courseSectionAPI?.setLists) {
+          const { my, remaining } = courseSectionAPI.getState();
+          const myNext = my.filter((c) => c.id !== course.id);
+          const remainingNext = [...remaining, course];
+          courseSectionAPI.setLists(myNext, remainingNext);
+        } else {
+          // Fallback: remove just this card (won’t update remaining list)
+          const cardEl = wrap.closest(".exp-card");
+          const container = cardEl?.parentElement;
+          cardEl?.remove();
+          if (container && !container.querySelector(".exp-card")) {
+            const empty = document.createElement("div");
+            empty.className = "card";
+            empty.textContent = "You are not enrolled in any courses.";
+            container.appendChild(empty);
+          }
+        }
+      } catch (err) {
+        console.error("Unenroll failed:", err);
+        Toast("error", err?.message || "Failed to leave course");
+      }
+    },
+  });
+  leaveBtn.setAttribute("data-no-toggle", "");
+
+  actions.append(addBtn, leaveBtn);
+  wrap.appendChild(actions);
 
   // Load books (embedded chapters)
   (async () => {
@@ -93,7 +141,7 @@ function openBookMenu({ anchorEl, element: bookItemEl, book }) {
     anchorEl,
     placement: "bottom-end",
     offset: 8,
-    cardClass: "bookmenu-popover modal-card--popover", // compact + no header
+    cardClass: "bookmenu-popover modal-card--popover",
   });
 
   const list = document.createElement("div");
@@ -106,7 +154,6 @@ function openBookMenu({ anchorEl, element: bookItemEl, book }) {
   del.addEventListener("click", async () => {
     try {
       await booksService.delete(book.id);
-      // remove from UI
       const ul = bookItemEl?.parentElement;
       bookItemEl?.remove();
       if (ul && ul.children.length === 0) {
@@ -118,7 +165,12 @@ function openBookMenu({ anchorEl, element: bookItemEl, book }) {
       Toast("success", "Book deleted");
       modal.close();
     } catch (e) {
-      Toast("error", "Failed to delete book. One or more members has completed a chapter");
+      const msg = e?.message || "";
+      if (msg.includes("409") || /completed/i.test(msg)) {
+        Toast("error", "Cannot delete: at least one person has completed a chapter in this book");
+      } else {
+        Toast("error", "Failed to delete book");
+      }
       modal.close();
     }
   });
@@ -137,7 +189,7 @@ function openChapterActions(ctx) {
     anchorEl: pillEl,
     placement: "bottom-start",
     offset: 8,
-    cardClass: "chapter-actions", // compact popover styling
+    cardClass: "chapter-actions modal-card--popover",
   });
 
   const col = document.createElement("div");
@@ -150,9 +202,7 @@ function openChapterActions(ctx) {
     label: completed ? "Mark incomplete" : "Mark complete",
     type: completed ? "warn" : "success",
     onClick: async () => {
-      // optimistic UI
-      pillEl.setCompleted?.(!completed);
-
+      pillEl.setCompleted?.(!completed); // optimistic
       if (!Number.isInteger(chapterId) || chapterId <= 0) {
         modal.close();
         return;
@@ -189,12 +239,9 @@ function openChapterActions(ctx) {
       anchorEl: calBtn,
       initial: deadline ?? null,
       onPick: async (tsOrNull) => {
-        // Optimistic UI
-        pillEl.setDeadline?.(tsOrNull);
+        pillEl.setDeadline?.(tsOrNull); // optimistic
         dead.textContent = tsOrNull ? formatDeadline(tsOrNull) : "No deadline";
-
         if (!Number.isInteger(chapterId) || chapterId <= 0) return;
-
         try {
           await chaptersService.setDeadline(chapterId, tsOrNull);
         } catch (err) {

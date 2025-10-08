@@ -958,45 +958,6 @@ body {
   outline-offset: 2px;
 }
 
-/* ==============================================================*/
-/* ==============================================================*/
-/* ======================== Page Layouts ========================*/
-/* ==============================================================*/
-/* ==============================================================*/
-
-/* ====== University layout ====== */
-
-.uni-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 2rem;
-}
-
-.uni-footer {
-  width: 70%;
-  margin: 1rem auto 0 auto;
-  display: flex;
-  justify-content: flex-start;
-}
-
-@media (max-width: 600px) {
-  .uni-footer {
-    width: 90%;
-    justify-content: center;
-  }
-}
-
-
-/* === Compact popover=== */
-.modal-card.modal-card--popover {
-  width: auto;                 /* override global 720px */
-  min-width: 150px;
-  max-width: 380px;
-  padding: 0.5rem 0.6rem;
-  border-radius: 10px;
-}
 
 /* ===== Chapter actions popover ===== */
 .chapter-actions .modal-header { /* hide close header for this popover */
@@ -1078,3 +1039,53 @@ body {
   filter: brightness(1.03);
 }
 .bookmenu-item--danger { color: var(--error); }
+
+
+/* ==============================================================*/
+/* ==============================================================*/
+/* ======================== Page Layouts ========================*/
+/* ==============================================================*/
+/* ==============================================================*/
+
+/* ====== University layout ====== */
+
+.uni-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.uni-footer {
+  width: 70%;
+  margin: 1rem auto 0 auto;
+  display: flex;
+  justify-content: flex-start;
+}
+
+@media (max-width: 600px) {
+  .uni-footer {
+    width: 90%;
+    justify-content: center;
+  }
+}
+
+
+/* Actions row under each course in Books */
+.books-actions {
+  margin-top: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+
+/* === Compact popover=== */
+.modal-card.modal-card--popover {
+  width: auto;                 /* override global 720px */
+  min-width: 150px;
+  max-width: 380px;
+  padding: 0.5rem 0.6rem;
+  border-radius: 10px;
+}
