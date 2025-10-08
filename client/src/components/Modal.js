@@ -83,46 +83,34 @@ export function openModal({
   // Positioning (for popover)
   function updatePosition() {
     if (!anchorEl) return;
-    const rect = anchorEl.getBoundingClientRect();
+    const rect = anchorEl.getBoundingClientRect(); // viewport coords
 
-    // Make card measurable before positioning
+    // measure
     card.style.visibility = "hidden";
-    card.style.position = "absolute";
+    card.style.position = "fixed";   // <— FIXED, not absolute
     card.style.left = "0";
     card.style.top = "0";
     card.style.maxWidth = "min(420px, 96vw)";
-    card.style.visibility = "hidden";
-    // force layout
-    document.body.offsetHeight; // eslint-disable-line no-unused-expressions
+    document.body.offsetHeight; // force layout
 
     const cardW = card.offsetWidth;
     const cardH = card.offsetHeight;
 
-    let left, top;
-
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const pageX = window.scrollX;
-    const pageY = window.scrollY;
 
     const placeBottom = placement.startsWith("bottom");
     const placeStart = placement.endsWith("start");
 
-    // initial coords
-    left = pageX + (placeStart ? rect.left : rect.right - cardW);
-    top = pageY + (placeBottom ? rect.bottom + offset : rect.top - cardH - offset);
+    let left = placeStart ? rect.left : rect.right - cardW;
+    let top = placeBottom ? rect.bottom + offset : rect.top - cardH - offset;
 
-    // viewport adjust (basic)
-    if (left + cardW > pageX + vw - 8) left = pageX + vw - cardW - 8;
-    if (left < pageX + 8) left = pageX + 8;
-    if (top + cardH > pageY + vh - 8) {
-      // flip to top if bottom doesn’t fit
-      top = pageY + rect.top - cardH - offset;
-    }
-    if (top < pageY + 8) {
-      // flip to bottom if top doesn’t fit either
-      top = pageY + rect.bottom + offset;
-    }
+    // keep within viewport
+    if (left + cardW > vw - 8) left = vw - cardW - 8;
+    if (left < 8) left = 8;
+
+    if (top + cardH > vh - 8) top = rect.top - cardH - offset; // flip up
+    if (top < 8) top = rect.bottom + offset;                    // flip down
 
     card.style.left = `${left}px`;
     card.style.top = `${top}px`;
