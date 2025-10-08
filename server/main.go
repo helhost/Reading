@@ -24,9 +24,8 @@ func main() {
 	}
 	defer db.Close()
 
-	if err := store.EnsureSchema(db); err != nil {
-		log.Fatal("failed to ensure schema:", err)
-	}
+	if err := store.EnsureSchema(db); err != nil { log.Fatal("Failed to load schema", err) }
+	if err := store.EnsureCalendar(db); err != nil { log.Fatal("Failed to load calendar schema", err) }
 
 	// 2. API routes
 	apiMux := http.NewServeMux()
