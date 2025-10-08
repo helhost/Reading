@@ -24,11 +24,7 @@ export default function CourseSection({
   let my = Array.isArray(myCourses) ? [...myCourses] : [];
   let remaining = Array.isArray(remainingCourses) ? [...remainingCourses] : [];
 
-  const uniId =
-    universityId ??
-    my?.[0]?.universityId ??
-    remaining?.[0]?.universityId ??
-    null;
+  const uniId = universityId ?? null;
 
   // reset UI
   slot.innerHTML = "";
@@ -56,7 +52,6 @@ export default function CourseSection({
     label: addCourseButtonLabel,
     type: "primary",
     onClick: openEnrollModal,
-    disabled: remaining.length === 0 && !uniId,
   });
   footer.appendChild(addBtn);
 
@@ -77,10 +72,6 @@ export default function CourseSection({
     });
     card.dataset.courseId = c.id;
     return card;
-  }
-
-  function reflectAddState() {
-    addBtn.disabled = remaining.length === 0 && !uniId;
   }
 
   function addCourseToUI(c) {
@@ -107,7 +98,6 @@ export default function CourseSection({
           Toast("success", `Enrolled in ${c.code}: ${c.name}`);
           remaining = remaining.filter((x) => x.id !== c.id);
           addCourseToUI(c);
-          reflectAddState();
         } catch (e) {
           Toast("error", e?.message || "Failed to enroll");
         }
@@ -164,7 +154,6 @@ export default function CourseSection({
           });
 
           Toast("success", `Created & enrolled in ${created.code}: ${created.name}`);
-          reflectAddState();
           close();
         } catch (e) {
           Toast("error", e?.message || "Failed to create course");
@@ -191,7 +180,6 @@ export default function CourseSection({
         emptyCard = null;
         my.forEach((c) => list.appendChild(makeCourseCard(c)));
       }
-      reflectAddState();
     },
   };
 }

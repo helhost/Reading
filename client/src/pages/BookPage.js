@@ -12,11 +12,12 @@ import Button from "../components/Button.js";
 // Will hold the CourseSection API after mount
 let courseSectionAPI = null;
 
-export default function BookPage(myCourses = [], remainingCourses = []) {
+export default function BookPage(myCourses = [], remainingCourses = [], universityId = null) {
   // renderBody closes over courseSectionAPI; it's assigned right after mount.
   const section = CourseSection({
     myCourses,
     remainingCourses,
+    universityId,
     renderBody: (course) => renderCourseBooks(course),
   });
   courseSectionAPI = section; // now available to leave handler

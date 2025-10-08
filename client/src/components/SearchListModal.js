@@ -77,6 +77,15 @@ export function OpenSearchListModal({
       row.append(titleEl, btn);
       list.appendChild(row);
     }
+
+    if (filtered.length === 0) {
+      const msg = document.createElement("div");
+      msg.className = "searchlist__empty";
+      msg.textContent = "No matches found";
+      msg.style.color = "var(--error)";
+      list.appendChild(msg);
+      return;
+    }
   }
 
   input.addEventListener("input", () => render(input.value));

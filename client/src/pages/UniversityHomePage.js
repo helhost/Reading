@@ -52,7 +52,7 @@ export default async function UniversityHomePage(slug, tab /* "books"|"articles"
 
   try {
     const { myCourses, remainingCourses } = await getCourseLists(slug);
-    handler(myCourses, remainingCourses); // each stub just logs for now
+    handler(myCourses, remainingCourses, slug); // each stub just logs for now
   } catch (err) {
     console.error(`[${tab}] failed to load:`, err);
     Toast("error", err?.message || "Failed to load courses");
