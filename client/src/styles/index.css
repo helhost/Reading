@@ -290,18 +290,19 @@ body {
 .auth-message.is-error {
   color: crimson;
 }
-:
+
 .auth-form {
   display: grid;
-  gap: .75rem;
+  gap: 1rem;
 }
 
 .auth-actions {
   display: flex;
-  gap: .5rem;
-  justify-content: flex-end;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
 }
-
 
 /* ===== Banner ===== */
 
