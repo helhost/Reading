@@ -42,7 +42,7 @@ function renderCourseBooks(course) {
         const item = BookItem({
           book,
           chapters: synthesizeChapters(book.numChapters),
-          onMeatballClick: defaultMeatballHandler,
+          onMeatballClick: (ctx) => openBookMenu(ctx),
           onChapterClick: (ctx) => openChapterActions(ctx),
         });
         list.appendChild(item);
@@ -70,7 +70,7 @@ function renderCourseBooks(course) {
         const item = BookItem({
           book,
           chapters,
-          onMeatballClick: defaultMeatballHandler,
+          onMeatballClick: (ctx) => openBookMenu(ctx),
           onChapterClick: (ctx) => openChapterActions(ctx),
         });
         list.appendChild(item);
@@ -86,6 +86,48 @@ function renderCourseBooks(course) {
   return wrap;
 }
 
+/* -------------------- meatball popover -------------------- */
+
+function openBookMenu({ anchorEl, element: bookItemEl, book }) {
+  const modal = openModal({
+    anchorEl,
+    placement: "bottom-end",
+    offset: 8,
+    cardClass: "bookmenu-popover modal-card--popover", // compact + no header
+  });
+
+  const list = document.createElement("div");
+  list.className = "bookmenu-list";
+
+  const del = document.createElement("button");
+  del.type = "button";
+  del.className = "bookmenu-item bookmenu-item--danger";
+  del.textContent = "Delete";
+  del.addEventListener("click", async () => {
+    try {
+      await booksService.delete(book.id);
+      // remove from UI
+      const ul = bookItemEl?.parentElement;
+      bookItemEl?.remove();
+      if (ul && ul.children.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "book-meta";
+        empty.textContent = "No books yet.";
+        ul.appendChild(empty);
+      }
+      Toast("success", "Book deleted");
+      modal.close();
+    } catch (e) {
+      Toast("error", "Failed to delete book. One or more members has completed a chapter");
+      modal.close();
+    }
+  });
+
+  list.appendChild(del);
+  modal.setBody(list);
+  return modal;
+}
+
 /* -------------------- chapter actions -------------------- */
 
 function openChapterActions(ctx) {
@@ -98,7 +140,6 @@ function openChapterActions(ctx) {
     cardClass: "chapter-actions", // compact popover styling
   });
 
-  // Column container (rows of actions)
   const col = document.createElement("div");
   col.className = "chapter-actions__col";
 
@@ -112,7 +153,6 @@ function openChapterActions(ctx) {
       // optimistic UI
       pillEl.setCompleted?.(!completed);
 
-      // no id? UI-only until next refresh
       if (!Number.isInteger(chapterId) || chapterId <= 0) {
         modal.close();
         return;
@@ -145,12 +185,11 @@ function openChapterActions(ctx) {
   dead.textContent = deadline ? formatDeadline(deadline) : "No deadline";
 
   calBtn.addEventListener("click", () => {
-    // open date picker anchored to the calendar button
     openDatePicker({
       anchorEl: calBtn,
       initial: deadline ?? null,
       onPick: async (tsOrNull) => {
-        // Optimistic UI update
+        // Optimistic UI
         pillEl.setDeadline?.(tsOrNull);
         dead.textContent = tsOrNull ? formatDeadline(tsOrNull) : "No deadline";
 
@@ -159,13 +198,9 @@ function openChapterActions(ctx) {
         try {
           await chaptersService.setDeadline(chapterId, tsOrNull);
         } catch (err) {
-          // rollback display if server fails (best-effort: we don't have previous text, just notify)
           console.error("Set deadline failed:", err);
           Toast("error", "Failed to set deadline");
         }
-      },
-      onClose: () => {
-        // keep parent popover open; you can close it here if desired
       },
     });
   });
@@ -179,10 +214,6 @@ function openChapterActions(ctx) {
 }
 
 /* -------------------- utils -------------------- */
-
-function defaultMeatballHandler({ anchorEl, book }) {
-  console.log("book menu @", anchorEl, "for book", book);
-}
 
 function normalizeEmbeddedChapters(book) {
   if (Array.isArray(book.chapters) && book.chapters.length) {

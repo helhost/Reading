@@ -14,7 +14,7 @@ export default function ArticlePage(myCourses = [], remainingCourses = []) {
 
       const addBtn = document.createElement("button");
       addBtn.type = "button";
-      addBtn.className = "add-article-btn";
+      addBtn.className = "add-book-btn";
       addBtn.textContent = "＋ Add article";
       addBtn.setAttribute("data-no-toggle", "");
       addBtn.addEventListener("click", (e) => e.stopPropagation());

@@ -1044,3 +1044,37 @@ body {
 }
 
 
+/* ===== Book meatball menu (compact popover) ===== */
+.bookmenu-popover.modal-card--popover {
+  width: auto;                /* override 720px */
+  min-width: 140px;
+  max-width: 220px;
+  padding: 6px;               /* tight chrome */
+  border-radius: 12px;
+  box-shadow: 0 18px 60px var(--shadow-color);
+}
+.bookmenu-popover .modal-header { display: none; }      /* hide the X */
+.bookmenu-popover .modal-body  { padding: 4px; }        /* remove extra padding */
+
+.bookmenu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bookmenu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;          /* tighter rows */
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: background .12s ease, filter .12s ease;
+}
+.bookmenu-item:hover {
+  background: color-mix(in oklab, var(--text-color) 8%, transparent);
+  filter: brightness(1.03);
+}
+.bookmenu-item--danger { color: var(--error); }

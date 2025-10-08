@@ -14,7 +14,7 @@ export default function AssignmentPage(myCourses = [], remainingCourses = []) {
 
       const addBtn = document.createElement("button");
       addBtn.type = "button";
-      addBtn.className = "add-assignment-btn";
+      addBtn.className = "add-book-btn";
       addBtn.textContent = "＋ Add assignment";
       addBtn.setAttribute("data-no-toggle", "");
       addBtn.addEventListener("click", (e) => e.stopPropagation());
