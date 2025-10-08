@@ -11,10 +11,11 @@ import Button from "../components/Button.js";
 // keep a handle to CourseSection API so we can move courses between my/remaining on unenroll
 let courseSectionAPI = null;
 
-export default function ArticlePage(myCourses = [], remainingCourses = []) {
+export default function ArticlePage(myCourses = [], remainingCourses = [], universityId = null) {
   const section = CourseSection({
     myCourses,
     remainingCourses,
+    universityId,
     renderBody: (course) => renderCourseArticles(course),
   });
   courseSectionAPI = section;
