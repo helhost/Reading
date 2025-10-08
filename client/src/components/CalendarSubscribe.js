@@ -4,6 +4,9 @@ import CalendarSvc from "../services/calendar.js";
 import { Calendar as CalendarSVG } from "../Icons/Calendar.js";
 import { Copy as CopySVG } from "../Icons/Copy.js";
 
+
+const OVERLAY_CLASS = "calendar-sub-modal";
+
 /* ---------- helpers ---------- */
 function svgFromString(svgStr) {
   const doc = new DOMParser().parseFromString(svgStr, "image/svg+xml");
@@ -21,10 +24,8 @@ function normalizeIconColors(svgEl) {
 }
 
 export function mountCalendarSubscribe() {
-  // avoid duplicates across route changes
   if (document.getElementById("calendar-subscribe-fab")) return;
 
-  // FAB (icon-only)
   const fab = document.createElement("button");
   fab.id = "calendar-subscribe-fab";
   fab.type = "button";
@@ -39,20 +40,23 @@ export function mountCalendarSubscribe() {
   document.body.appendChild(fab);
 
   fab.addEventListener("click", async () => {
-    const modal = openModal({ title: "Subscribe to your calendar" });
+    const modal = openModal({
+      title: "Subscribe to your calendar",
+      overlayClass: OVERLAY_CLASS,        // <-- tag this modal
+    });
 
-    // ===== build body (no innerHTML) =====
+    // body build … (unchanged from your latest version)
+
+    // label
     const body = document.createElement("div");
-
     const label = document.createElement("label");
     label.className = "cal-sub__label";
     label.setAttribute("for", "cal-sub-url");
     label.textContent = "Subscription URL";
 
-    // input + Copy inline
+    // input + copy inline
     const row = document.createElement("div");
     row.className = "cal-sub__row";
-
     const input = document.createElement("input");
     input.id = "cal-sub-url";
     input.className = "input-field cal-sub__input";
@@ -67,10 +71,9 @@ export function mountCalendarSubscribe() {
     const copyText = document.createElement("span");
     copyText.textContent = "Copy";
     copyBtn.append(copyIcon, copyText);
-
     row.append(input, copyBtn);
 
-    // actions row: New URL button
+    // actions: New URL
     const actions = document.createElement("div");
     actions.className = "cal-sub__actions";
     const rotateBtn = Button({ label: "New URL", type: "warn" });
@@ -79,24 +82,19 @@ export function mountCalendarSubscribe() {
     body.append(label, row, actions);
     modal.setBody(body);
 
-    // ===== data wiring =====
+    // data wiring …
     let tokenData;
     try {
-      tokenData = await CalendarSvc.getToken(); // { token, urlPath }
-      if (!tokenData) throw new Error("not logged in");
+      tokenData = await CalendarSvc.getToken();
     } catch {
       input.value = "Sign in to generate a link.";
       copyBtn.disabled = true;
       rotateBtn.disabled = true;
       return;
     }
-
-    const setUrl = (urlPath) => {
-      input.value = CalendarSvc.toAbsoluteUrl(urlPath);
-    };
+    const setUrl = (p) => { input.value = CalendarSvc.toAbsoluteUrl(p); };
     setUrl(tokenData.urlPath);
 
-    // Copy
     copyBtn.addEventListener("click", async () => {
       try {
         await navigator.clipboard.writeText(input.value);
@@ -108,13 +106,12 @@ export function mountCalendarSubscribe() {
       }
     });
 
-    // Rotate
     rotateBtn.addEventListener("click", async () => {
       rotateBtn.disabled = true;
       const prev = rotateBtn.textContent;
       rotateBtn.textContent = "Generating…";
       try {
-        const next = await CalendarSvc.rotateToken(); // { token, urlPath }
+        const next = await CalendarSvc.rotateToken();
         setUrl(next.urlPath);
         rotateBtn.textContent = "New URL";
       } catch {
@@ -125,4 +122,11 @@ export function mountCalendarSubscribe() {
       }
     });
   });
+}
+
+export function unmountCalendarSubscribe() {
+  const fab = document.getElementById("calendar-subscribe-fab");
+  if (fab) fab.remove();
+  // close our modal if open (don’t touch other modals)
+  document.querySelectorAll(`.${OVERLAY_CLASS}`).forEach((n) => n.remove());
 }
