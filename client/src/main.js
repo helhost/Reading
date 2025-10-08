@@ -2,6 +2,7 @@ import { router, initRoutes } from "./router.js";
 import auth from "./services/auth.js";
 import { mountBanner, updateBanner } from "./components/Banner.js";
 import { Toast } from "./components/Toast.js";
+import { mountCalendarSubscribe } from "./components/CalendarSubscribe.js";
 
 window.router = router; // helpful for programmatic nav from pages/components
 
@@ -27,6 +28,8 @@ async function boot() {
       router.updatePageLinks();
     },
   });
+
+  if (user) mountCalendarSubscribe();
 
   // keep banner in sync when auth changes anywhere
   window.addEventListener("auth:changed", async (e) => {

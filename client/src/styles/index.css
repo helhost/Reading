@@ -956,6 +956,74 @@ body {
 }
 
 
+/* ===== Calendar Subscribe (FAB + modal) ===== */
+
+/* FAB: bottom-left, transparent, icon-only (black in light, white in dark via --text-color) */
+.fab {
+  position: fixed;
+  background: transparent;
+  color: var(--text-color);
+  border: none;
+  width: 60px;
+  height: 60px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+  z-index: 2000;
+}
+.fab:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--text-color) 35%, transparent);
+  outline-offset: 2px;
+}
+.fab--bl { left: 20px; bottom: 20px; }
+.fab--round { border-radius: 9999px; }
+.fab--calendar .icon {
+  width: 40px;
+  height: 40px;
+  transition: transform 120ms ease; /* keep it snappy */
+  transform-origin: center;
+}
+
+.fab--calendar:hover .icon {
+  transform: scale(1.2); /* ~20% grow */
+}
+
+/* Generic svg icon node parsed from your SVG strings */
+.icon { display: block; fill: currentColor; }
+
+/* Modal layout */
+.cal-sub__row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+.cal-sub__label { font-weight: 600; opacity: 0.9; }
+
+/* Override the global input-field width/margins for this modal */
+.cal-sub__input.input-field {
+  width: 100%;
+  margin: 0;
+}
+
+.cal-sub__actions {
+  margin-top: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* Button with leading icon */
+.btn--icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn--icon .icon { width: 16px; height: 16px; }
+
+
 /* ===== BookItem Component ===== */
 
 .book-item {
