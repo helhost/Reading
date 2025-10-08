@@ -1005,6 +1005,10 @@ body {
 }
 
 
+/* ===== ArticleItem Component ===== */
+.article-item { position: relative; }
+.article-pill  { font-size: 0; } /* hides the '1' label on the single pill */
+
 /* ===== Book meatball menu (compact popover) ===== */
 .bookmenu-popover.modal-card--popover {
   width: auto;                /* override 720px */
