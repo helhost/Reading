@@ -28,6 +28,14 @@ async function boot() {
     },
   });
 
+  // keep banner in sync when auth changes anywhere
+  window.addEventListener("auth:changed", async (e) => {
+    const nextUser = e?.detail?.user ?? (await safeMe());
+    updateBanner({ user: nextUser });
+    // banner DOM may have changed (links/buttons), rebind Navigo
+    router.updatePageLinks();
+  });
+
   // ensure any other page links are wired to Navigo
   router.updatePageLinks();
 
