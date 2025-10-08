@@ -25,7 +25,11 @@ func main() {
 	defer db.Close()
 
 	if err := store.EnsureSchema(db); err != nil { log.Fatal("Failed to load schema", err) }
-	if err := store.EnsureCalendar(db); err != nil { log.Fatal("Failed to load calendar schema", err) }
+	//if err := store.EnsureCalendar(db); err != nil { log.Fatal("Failed to load calendar schema", err) }
+
+	if err := store.Migrate_Calendar_AllKinds_IncludeCourse(db); err != nil {
+		log.Fatal("Failed to migrate calendar triggers", err)
+	}
 
 	// 2. API routes
 	apiMux := http.NewServeMux()

@@ -34,27 +34,26 @@ func EnsureCalendar(db *sql.DB) error {
 func EnsureCalendarIndex(db execer) error {
 	_, err := db.Exec(`
 	CREATE TABLE IF NOT EXISTS calendar_index (
-		uid TEXT PRIMARY KEY,                         -- yourapp:{kind}:{source_id}:user:{user_id}
+		uid TEXT PRIMARY KEY,
 		user_id TEXT NOT NULL,
-		kind TEXT NOT NULL,                           -- 'assignment' | 'article' | 'chapter' (others later)
+		kind TEXT NOT NULL,
 		source_id INTEGER NOT NULL,
 		summary TEXT NOT NULL,
-		deadline_epoch INTEGER,                       -- unix seconds; NULL means no dated event
+		deadline_epoch INTEGER,
 		completed INTEGER NOT NULL DEFAULT 0 CHECK (completed IN (0,1)),
-		last_modified_epoch INTEGER NOT NULL,         -- DTSTAMP/LAST-MODIFIED
-		seq INTEGER NOT NULL DEFAULT 0,               -- iCalendar SEQUENCE
-		cancelled_at INTEGER                          -- tombstone (emit STATUS:CANCELLED while non-NULL)
+		last_modified_epoch INTEGER NOT NULL,
+		seq INTEGER NOT NULL DEFAULT 0,
+		cancelled_at INTEGER
 	);
 
-	CREATE INDEX IF NOT EXISTS idx_cal_user            		ON calendar_index(user_id);
-	CREATE INDEX IF NOT EXISTS idx_cal_deadline        		ON calendar_index(deadline_epoch);
-	CREATE INDEX IF NOT EXISTS idx_cal_kind_source     		ON calendar_index(kind, source_id);
-	CREATE INDEX IF NOT EXISTS idx_cal_user_deadline   		ON calendar_index(user_id, deadline_epoch);
-	CREATE INDEX IF NOT EXISTS idx_cal_kind_source_user  	ON calendar_index(kind, source_id, user_id);
+	CREATE INDEX IF NOT EXISTS idx_cal_user              ON calendar_index(user_id);
+	CREATE INDEX IF NOT EXISTS idx_cal_deadline          ON calendar_index(deadline_epoch);
+	CREATE INDEX IF NOT EXISTS idx_cal_kind_source       ON calendar_index(kind, source_id);
+	CREATE INDEX IF NOT EXISTS idx_cal_user_deadline     ON calendar_index(user_id, deadline_epoch);
+	CREATE INDEX IF NOT EXISTS idx_cal_kind_source_user  ON calendar_index(kind, source_id, user_id);
 
-	
 	CREATE TABLE IF NOT EXISTS calendar_tokens (
-		token TEXT PRIMARY KEY,                                  -- long, random (hex or base64url)
+		token TEXT PRIMARY KEY,
 		user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 		created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
 		last_used_at INTEGER
@@ -68,15 +67,10 @@ func EnsureCalendarIndex(db execer) error {
 }
 
 // EnsureCalendarTriggers installs triggers that keep calendar_index in sync.
-// This first cut wires ONLY the 'assignments' entity via course enrollment (user_courses).
-// You can extend with 'articles' and 'chapters' later, following the same pattern.
 func EnsureCalendarTriggers(db execer) error {
 	_, err := db.Exec(`
-	/* ============================
-		 ASSIGNMENTS ↔ USER_COURSES
-		 ============================ */
+	/* ============ ASSIGNMENTS ============ */
 
-	-- 1) When a user enrolls in a course, index all existing assignments in that course.
 	CREATE TRIGGER IF NOT EXISTS cal_uc_ins_assignments
 	AFTER INSERT ON user_courses
 	BEGIN
@@ -87,8 +81,11 @@ func EnsureCalendarTriggers(db execer) error {
 			NEW.user_id,
 			'assignment',
 			a.id,
-			a.title,
-			a.deadline,                       -- may be NULL; emitter should skip NULLs
+			printf('[%s] %s — %s',
+			       (SELECT code FROM courses WHERE id = a.course_id),
+			       (SELECT name FROM courses WHERE id = a.course_id),
+			       a.title),
+			a.deadline,
 			0,
 			strftime('%s','now'),
 			0,
@@ -100,24 +97,22 @@ func EnsureCalendarTriggers(db execer) error {
 			deadline_epoch = excluded.deadline_epoch,
 			last_modified_epoch = strftime('%s','now'),
 			seq = calendar_index.seq + 1,
-			cancelled_at = NULL;              -- resurrect if previously cancelled
+			cancelled_at = NULL;
 	END;
 
-	-- 2) When a user UNenrolls, tombstone that course's assignments for that user (idempotent).
 	CREATE TRIGGER IF NOT EXISTS cal_uc_del_assignments
 	AFTER DELETE ON user_courses
 	BEGIN
 		UPDATE calendar_index
 		SET cancelled_at = strftime('%s','now'),
-				last_modified_epoch = strftime('%s','now'),
-				seq = seq + 1
+		    last_modified_epoch = strftime('%s','now'),
+		    seq = seq + 1
 		WHERE kind = 'assignment'
-			AND user_id = OLD.user_id
-			AND cancelled_at IS NULL
-			AND source_id IN (SELECT id FROM assignments WHERE course_id = OLD.course_id);
+		  AND user_id = OLD.user_id
+		  AND cancelled_at IS NULL
+		  AND source_id IN (SELECT id FROM assignments WHERE course_id = OLD.course_id);
 	END;
 
-	-- 3) When a new assignment is created, index it for all enrolled users.
 	CREATE TRIGGER IF NOT EXISTS cal_assign_ins
 	AFTER INSERT ON assignments
 	BEGIN
@@ -128,7 +123,10 @@ func EnsureCalendarTriggers(db execer) error {
 			uc.user_id,
 			'assignment',
 			NEW.id,
-			NEW.title,
+			printf('[%s] %s — %s',
+			       (SELECT code FROM courses WHERE id = NEW.course_id),
+			       (SELECT name FROM courses WHERE id = NEW.course_id),
+			       NEW.title),
 			NEW.deadline,
 			0,
 			strftime('%s','now'),
@@ -144,37 +142,48 @@ func EnsureCalendarTriggers(db execer) error {
 			cancelled_at = NULL;
 	END;
 
-	-- 4) When an assignment's title/deadline changes, update all users' entries.
 	CREATE TRIGGER IF NOT EXISTS cal_assign_upd_fields
 	AFTER UPDATE OF title, deadline ON assignments
 	BEGIN
 		UPDATE calendar_index
-		SET summary = NEW.title,
-				deadline_epoch = NEW.deadline,            -- if NULL, row remains; emitter should skip it
-				last_modified_epoch = strftime('%s','now'),
-				seq = seq + 1
+		SET summary = printf('[%s] %s — %s',
+		                     (SELECT code FROM courses WHERE id = NEW.course_id),
+		                     (SELECT name FROM courses WHERE id = NEW.course_id),
+		                     NEW.title),
+		    deadline_epoch = NEW.deadline,
+		    last_modified_epoch = strftime('%s','now'),
+		    seq = seq + 1
 		WHERE kind = 'assignment' AND source_id = NEW.id;
 	END;
 
-	-- 5) When an assignment is deleted, tombstone all users' entries (idempotent).
 	CREATE TRIGGER IF NOT EXISTS cal_assign_del
 	AFTER DELETE ON assignments
 	BEGIN
 		UPDATE calendar_index
 		SET cancelled_at = strftime('%s','now'),
-				last_modified_epoch = strftime('%s','now'),
-				seq = seq + 1
+		    last_modified_epoch = strftime('%s','now'),
+		    seq = seq + 1
 		WHERE kind = 'assignment'
-			AND source_id = OLD.id
-			AND cancelled_at IS NULL;
+		  AND source_id = OLD.id
+		  AND cancelled_at IS NULL;
 	END;
 
+	/* propagate course name/code edits into assignment summaries */
+	CREATE TRIGGER IF NOT EXISTS cal_course_upd_name_code
+	AFTER UPDATE OF name, code ON courses
+	BEGIN
+		UPDATE calendar_index
+		SET summary = printf('[%s] %s — %s',
+		                     NEW.code, NEW.name,
+		                     (SELECT title FROM assignments WHERE id = calendar_index.source_id)),
+		    last_modified_epoch = strftime('%s','now'),
+		    seq = seq + 1
+		WHERE kind = 'assignment'
+		  AND source_id IN (SELECT id FROM assignments WHERE course_id = NEW.id);
+	END;
 
-	/* ============================
-		 ARTICLES ↔ USER_COURSES
-		 ============================ */
+	/* ============ ARTICLES ============ */
 
-	-- 1) When a user enrolls in a course, index all existing articles in that course.
 	CREATE TRIGGER IF NOT EXISTS cal_uc_ins_articles
 	AFTER INSERT ON user_courses
 	BEGIN
@@ -201,21 +210,19 @@ func EnsureCalendarTriggers(db execer) error {
 			cancelled_at = NULL;
 	END;
 
-	-- 2) When a user UNenrolls, tombstone that course's articles for that user.
 	CREATE TRIGGER IF NOT EXISTS cal_uc_del_articles
 	AFTER DELETE ON user_courses
 	BEGIN
 		UPDATE calendar_index
 		SET cancelled_at = strftime('%s','now'),
-				last_modified_epoch = strftime('%s','now'),
-				seq = seq + 1
+		    last_modified_epoch = strftime('%s','now'),
+		    seq = seq + 1
 		WHERE kind = 'article'
-			AND user_id = OLD.user_id
-			AND cancelled_at IS NULL
-			AND source_id IN (SELECT id FROM articles WHERE course_id = OLD.course_id);
+		  AND user_id = OLD.user_id
+		  AND cancelled_at IS NULL
+		  AND source_id IN (SELECT id FROM articles WHERE course_id = OLD.course_id);
 	END;
 
-	-- 3) When a new article is created, index it for all enrolled users.
 	CREATE TRIGGER IF NOT EXISTS cal_article_ins
 	AFTER INSERT ON articles
 	BEGIN
@@ -242,34 +249,30 @@ func EnsureCalendarTriggers(db execer) error {
 			cancelled_at = NULL;
 	END;
 
-	-- 4) When an article's title/deadline changes, update all users' entries.
 	CREATE TRIGGER IF NOT EXISTS cal_article_upd_fields
 	AFTER UPDATE OF title, deadline ON articles
 	BEGIN
 		UPDATE calendar_index
 		SET summary = NEW.title,
-				deadline_epoch = NEW.deadline,
-				last_modified_epoch = strftime('%s','now'),
-				seq = seq + 1
+		    deadline_epoch = NEW.deadline,
+		    last_modified_epoch = strftime('%s','now'),
+		    seq = seq + 1
 		WHERE kind = 'article' AND source_id = NEW.id;
 	END;
 
-	-- 5) When an article is deleted, tombstone all users' entries.
 	CREATE TRIGGER IF NOT EXISTS cal_article_del
 	AFTER DELETE ON articles
 	BEGIN
 		UPDATE calendar_index
 		SET cancelled_at = strftime('%s','now'),
-				last_modified_epoch = strftime('%s','now'),
-				seq = seq + 1
+		    last_modified_epoch = strftime('%s','now'),
+		    seq = seq + 1
 		WHERE kind = 'article'
-			AND source_id = OLD.id
-			AND cancelled_at IS NULL;
+		  AND source_id = OLD.id
+		  AND cancelled_at IS NULL;
 	END;
 
-	/* ============================
-		 CHAPTERS ↔ USER_COURSES (on enroll)
-		 ============================ */
+	/* ============ CHAPTERS ============ */
 
 	CREATE TRIGGER IF NOT EXISTS cal_uc_ins_chapters
 	AFTER INSERT ON user_courses
@@ -281,9 +284,8 @@ func EnsureCalendarTriggers(db execer) error {
 			NEW.user_id,
 			'chapter',
 			c.id,
-			-- choose your preferred summary format:
 			printf('Chapter %d — %s', c.chapter_num, b.title),
-			c.deadline,                      -- may be NULL; your .ics emitter should skip NULLs
+			c.deadline,
 			0,
 			strftime('%s','now'),
 			0,
@@ -296,34 +298,27 @@ func EnsureCalendarTriggers(db execer) error {
 			deadline_epoch = excluded.deadline_epoch,
 			last_modified_epoch = strftime('%s','now'),
 			seq = calendar_index.seq + 1,
-			cancelled_at = NULL;             -- resurrect if previously cancelled
+			cancelled_at = NULL;
 	END;
 
-
-	/* ============================
-		 CHAPTERS ↔ USER_COURSES (unenroll)
-		 ============================ */
 	CREATE TRIGGER IF NOT EXISTS cal_uc_del_chapters
 	AFTER DELETE ON user_courses
 	BEGIN
 		UPDATE calendar_index
 		SET cancelled_at = strftime('%s','now'),
-				last_modified_epoch = strftime('%s','now'),
-				seq = seq + 1
+		    last_modified_epoch = strftime('%s','now'),
+		    seq = seq + 1
 		WHERE kind = 'chapter'
-			AND user_id = OLD.user_id
-			AND cancelled_at IS NULL
-			AND source_id IN (
-				SELECT c.id
-				FROM chapters c
-				JOIN books b ON b.id = c.book_id
-				WHERE b.course_id = OLD.course_id
-			);
+		  AND user_id = OLD.user_id
+		  AND cancelled_at IS NULL
+		  AND source_id IN (
+			SELECT c.id
+			FROM chapters c
+			JOIN books b ON b.id = c.book_id
+			WHERE b.course_id = OLD.course_id
+		  );
 	END;
 
-	/* ============================
-		 CHAPTERS (insert)
-		 ============================ */
 	CREATE TRIGGER IF NOT EXISTS cal_chapter_ins
 	AFTER INSERT ON chapters
 	BEGIN
@@ -335,7 +330,7 @@ func EnsureCalendarTriggers(db execer) error {
 			'chapter',
 			NEW.id,
 			printf('Chapter %d — %s', NEW.chapter_num,
-						 (SELECT title FROM books WHERE id = NEW.book_id)),
+			       (SELECT title FROM books WHERE id = NEW.book_id)),
 			NEW.deadline,
 			0,
 			strftime('%s','now'),
@@ -351,52 +346,43 @@ func EnsureCalendarTriggers(db execer) error {
 			cancelled_at = NULL;
 	END;
 
-	/* ============================
-		 CHAPTERS (update fields)
-		 ============================ */
 	CREATE TRIGGER IF NOT EXISTS cal_chapter_upd_fields
 	AFTER UPDATE OF chapter_num, deadline ON chapters
 	BEGIN
 		UPDATE calendar_index
 		SET summary = printf('Chapter %d — %s', NEW.chapter_num,
-												 (SELECT title FROM books WHERE id = NEW.book_id)),
-				deadline_epoch = NEW.deadline,
-				last_modified_epoch = strftime('%s','now'),
-				seq = seq + 1
+		                     (SELECT title FROM books WHERE id = NEW.book_id)),
+		    deadline_epoch = NEW.deadline,
+		    last_modified_epoch = strftime('%s','now'),
+		    seq = seq + 1
 		WHERE kind = 'chapter' AND source_id = NEW.id;
 	END;
 
-	/* ============================
-		 BOOKS (title change affects chapter summaries)
-		 ============================ */
 	CREATE TRIGGER IF NOT EXISTS cal_book_upd_title
 	AFTER UPDATE OF title ON books
 	BEGIN
 		UPDATE calendar_index
 		SET summary = (
-					SELECT printf('Chapter %d — %s', c.chapter_num, NEW.title)
-					FROM chapters c
-					WHERE c.id = calendar_index.source_id
-				),
-				last_modified_epoch = strftime('%s','now'),
-				seq = seq + 1
+			SELECT printf('Chapter %d — %s', c.chapter_num, NEW.title)
+			FROM chapters c
+			WHERE c.id = calendar_index.source_id
+		),
+		    last_modified_epoch = strftime('%s','now'),
+		    seq = seq + 1
 		WHERE kind = 'chapter'
-			AND source_id IN (SELECT id FROM chapters WHERE book_id = NEW.id);
+		  AND source_id IN (SELECT id FROM chapters WHERE book_id = NEW.id);
 	END;
 
-	/* ============================
-		 CHAPTERS (delete)
-		 ============================ */
 	CREATE TRIGGER IF NOT EXISTS cal_chapter_del
 	AFTER DELETE ON chapters
 	BEGIN
 		UPDATE calendar_index
 		SET cancelled_at = strftime('%s','now'),
-				last_modified_epoch = strftime('%s','now'),
-				seq = seq + 1
+		    last_modified_epoch = strftime('%s','now'),
+		    seq = seq + 1
 		WHERE kind = 'chapter'
-			AND source_id = OLD.id
-			AND cancelled_at IS NULL;
+		  AND source_id = OLD.id
+		  AND cancelled_at IS NULL;
 	END;
 	`)
 	if err != nil {
