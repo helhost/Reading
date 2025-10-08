@@ -928,9 +928,24 @@ body {
   opacity: 0.9;
 }
 
-.chapter-box.deadline-past::before {
-  background: var(--error);
+
+/* Completed chapters go green */
+.chapter-box.completed {
+  background: var(--success);
+  color: var(--black);
+  border-color: color-mix(in oklab, var(--success) 55%, transparent);
 }
+
+/* If there's a deadline dot, make it green when completed */
+.chapter-box.completed.has-deadline::before {
+  background: var(--success);
+}
+
+/* Completed should trump "past" red */
+.chapter-box.completed.deadline-past::before {
+  background: var(--success);
+}
+
 
 /* ===== BookItem Component ===== */
 
