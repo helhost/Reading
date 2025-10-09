@@ -29,6 +29,11 @@ func EnsureSchema(db *sql.DB) error {
       created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
     );
 
+		CREATE TABLE IF NOT EXISTS admins (
+			user_id TEXT PRIMARY KEY,
+			FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+		);
+
     CREATE TABLE IF NOT EXISTS universities (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL UNIQUE,
