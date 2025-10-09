@@ -16,6 +16,8 @@ import (
 	"example.com/sqlite-server/assignment"
 
 	"example.com/sqlite-server/calendar"
+
+	"example.com/sqlite-server/admin"
 )
 
 // -----------------------------------------------------------
@@ -36,6 +38,8 @@ func registerRoutes(mux *http.ServeMux, db *sql.DB) {
 	assignment.RegisterAssignmentRoutes(mux, db)
 
 	calendar.RegisterCalendarRoutes(mux, db)
+
+	admin.RegisterAdminRoutes(mux,db)
 }
 
 // -----------------------------------------------------------
