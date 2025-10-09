@@ -3,6 +3,7 @@
   --primary-color: #fcfaff;
   --text-color: #111;
   --border-color: color-mix(in oklab, var(--text-color) 18%, transparent);
+  --border-color-accent: #ddddee;
   --shadow-color: rgba(0, 0, 0, 0.22);
 
   /* ===== Status color palette ===== */
@@ -22,6 +23,7 @@
     --primary-color: #1a103d;
     --text-color: #f5f5f5;
     --border-color: color-mix(in oklab, var(--text-color) 22%, transparent);
+    --border-color-accent: #000022;
     --shadow-color: rgba(0, 0, 0, 0.28);
   }
 }
@@ -116,8 +118,10 @@ body {
   list-style: none;
   padding: 0;
   margin: 0;
-  display: grid;
-  gap: .4rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: flex-start;
 }
 
 .book-item {
@@ -125,6 +129,12 @@ body {
   background: none;
   position: relative;
   padding-right: 2rem;
+  display: inline-flex;
+  flex-direction: column;
+  flex: 0 1 auto;
+  width: auto;
+  border: 1px solid var(--border-color-accent);
+  border-radius: 12px;
 }
 
 .book-title {
@@ -934,10 +944,14 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--warn);
+  background: var(--warn); /* default: yellow (has deadline) */
   opacity: 0.9;
 }
 
+/* overdue (deadline passed, not completed) turns dot red */
+.chapter-box.has-deadline.deadline-past::before {
+  background: var(--error);
+}
 
 /* Completed chapters go green */
 .chapter-box.completed {
@@ -946,16 +960,11 @@ body {
   border-color: color-mix(in oklab, var(--success) 55%, transparent);
 }
 
-/* If there's a deadline dot, make it green when completed */
-.chapter-box.completed.has-deadline::before {
-  background: var(--success);
-}
-
-/* Completed should trump "past" red */
+/* Completed always trumps red or yellow */
+.chapter-box.completed.has-deadline::before,
 .chapter-box.completed.deadline-past::before {
   background: var(--success);
 }
-
 
 /* ===== Calendar Subscribe (FAB + modal) ===== */
 
