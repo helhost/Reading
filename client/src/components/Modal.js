@@ -6,34 +6,42 @@ export function openModal({
   cardClass = "",
   overlayClass = "",
   onClose,
+  centered = false, // add classes instead of inline styles
 } = {}) {
-  // close helper
   const cleanupFns = [];
   let closed = false;
 
   function close() {
     if (closed) return;
     closed = true;
-    cleanupFns.forEach((fn) => {
-      try { fn(); } catch { }
-    });
+    cleanupFns.forEach((fn) => { try { fn(); } catch { } });
     overlay.remove();
     if (typeof onClose === "function") onClose();
   }
 
   // overlay
   const overlay = document.createElement("div");
-  overlay.className = `modal-overlay ${anchorEl ? "modal-overlay--clear" : ""} ${overlayClass}`.trim();
+  overlay.className = [
+    "modal-overlay",
+    anchorEl ? "modal-overlay--clear" : "",
+    (!anchorEl && centered) ? "modal-overlay--centered" : "",
+    overlayClass,
+  ].filter(Boolean).join(" ");
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) close(); // click outside
   });
 
   // card
   const card = document.createElement("div");
-  card.className = `modal-card ${anchorEl ? "modal-card--popover" : ""} ${cardClass}`.trim();
+  card.className = [
+    "modal-card",
+    anchorEl ? "modal-card--popover" : "",
+    (!anchorEl && centered) ? "modal-card--centered" : "",
+    cardClass,
+  ].filter(Boolean).join(" ");
   card.addEventListener("click", (e) => e.stopPropagation());
 
-  // header (optional)
+  // header
   if (title && !anchorEl) {
     const header = document.createElement("div");
     header.className = "modal-header";
@@ -51,7 +59,6 @@ export function openModal({
     header.append(h, x);
     card.appendChild(header);
   } else if (anchorEl) {
-    // compact header for popovers (close button only)
     const header = document.createElement("div");
     header.className = "modal-header modal-header--compact";
 
@@ -71,7 +78,7 @@ export function openModal({
   body.className = "modal-body";
   card.appendChild(body);
 
-  // assemble
+  // mount
   overlay.append(card);
   document.body.append(overlay);
 
@@ -80,14 +87,13 @@ export function openModal({
   document.addEventListener("keydown", onKey);
   cleanupFns.push(() => document.removeEventListener("keydown", onKey));
 
-  // Positioning (for popover)
+  // anchored popover positioning
   function updatePosition() {
     if (!anchorEl) return;
-    const rect = anchorEl.getBoundingClientRect(); // viewport coords
+    const rect = anchorEl.getBoundingClientRect();
 
-    // measure
     card.style.visibility = "hidden";
-    card.style.position = "fixed";   // <— FIXED, not absolute
+    card.style.position = "fixed";
     card.style.left = "0";
     card.style.top = "0";
     card.style.maxWidth = "min(420px, 96vw)";
@@ -95,7 +101,6 @@ export function openModal({
 
     const cardW = card.offsetWidth;
     const cardH = card.offsetHeight;
-
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
@@ -105,10 +110,8 @@ export function openModal({
     let left = placeStart ? rect.left : rect.right - cardW;
     let top = placeBottom ? rect.bottom + offset : rect.top - cardH - offset;
 
-    // keep within viewport
     if (left + cardW > vw - 8) left = vw - cardW - 8;
     if (left < 8) left = 8;
-
     if (top + cardH > vh - 8) top = rect.top - cardH - offset; // flip up
     if (top < 8) top = rect.bottom + offset;                    // flip down
 
@@ -129,7 +132,6 @@ export function openModal({
     });
   }
 
-  // public API
   return {
     setBody(node) {
       body.innerHTML = "";
@@ -138,6 +140,7 @@ export function openModal({
     },
     updatePosition,
     close,
+    onCleanup(fn) { if (typeof fn === "function") cleanupFns.push(fn); },
     root: overlay,
     card,
     body,
