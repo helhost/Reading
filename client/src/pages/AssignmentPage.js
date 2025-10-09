@@ -237,7 +237,7 @@ function openAssignmentActions(ctx) {
 
   calBtn.addEventListener("click", () => {
     openDatePicker({
-      anchorEl: calBtn,
+      centered: true,
       initial: deadline ?? null,
       onPick: async (tsOrNull) => {
         // optimistic
@@ -252,6 +252,7 @@ function openAssignmentActions(ctx) {
         }
       },
     });
+    setTimeout(() => modal.close(), 0);
   });
 
   row2.append(calBtn, dead);

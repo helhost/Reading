@@ -237,7 +237,7 @@ function openChapterActions(ctx) {
 
   calBtn.addEventListener("click", () => {
     openDatePicker({
-      anchorEl: calBtn,
+      centered: true,
       initial: deadline ?? null,
       onPick: async (tsOrNull) => {
         pillEl.setDeadline?.(tsOrNull); // optimistic
@@ -251,6 +251,7 @@ function openChapterActions(ctx) {
         }
       },
     });
+    setTimeout(() => modal.close(), 0);
   });
 
   row2.append(calBtn, dead);

@@ -35,19 +35,31 @@ export default function openDatePicker({
   max = null,
   onPick,
   onClose,
+  centered = false,        // center on screen when true (ignore anchor)
 } = {}) {
-  if (!anchorEl) throw new Error("DatePicker requires anchorEl");
+  if (!centered && !anchorEl) {
+    throw new Error("DatePicker requires anchorEl (unless centered=true)");
+  }
 
-  const modal = openModal({
-    anchorEl,
-    placement: "bottom-start",
-    offset: 8,
-    cardClass: "menu-popover datepicker-popover",
-    onClose,
-  });
+  const modal = centered
+    ? openModal({
+      centered: true,
+      overlayClass: "modal-overlay--centered",
+      cardClass: "datepicker-popover modal-card--centered",
+      onClose,
+    })
+    : openModal({
+      anchorEl,
+      placement: "bottom-start",
+      offset: 8,
+      cardClass: "menu-popover datepicker-popover",
+      onClose,
+    });
 
   const body = document.createElement("div");
   body.className = "dp-body";
+  body.setAttribute("role", centered ? "dialog" : "group");
+  if (centered) body.setAttribute("aria-label", "Pick a date");
 
   // Row: date input
   const rowInput = document.createElement("div");
@@ -119,6 +131,16 @@ export default function openDatePicker({
 
   body.append(rowInput, rowQuick, rowActions);
   modal.setBody(body);
+
+  // Keyboard niceties: Enter = Save, Esc handled by modal, focus input
+  const onKey = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      saveBtn?.click();
+    }
+  };
+  body.addEventListener("keydown", onKey);
+  modal.onCleanup?.(() => body.removeEventListener("keydown", onKey));
 
   // Focus input for faster entry
   setTimeout(() => input.focus(), 0);

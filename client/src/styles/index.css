@@ -678,6 +678,24 @@ body {
   to   { opacity: 1; }
 }
 
+.modal-overlay.modal-overlay--centered {
+  /* override base .modal-overlay grid layout */
+  position: fixed;
+  inset: 0;
+  display: block;
+  padding: 0;
+}
+
+.modal-card.modal-card--centered {
+  /* override base .modal-card width/layout */
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: auto;                 /* beats width:min(720px,92vw) */
+  max-width: min(340px, 96vw); /* same cap as datepicker popover */
+}
+
 
 /* ===== Modal (Popover Support) ===== */
 .modal-overlay--clear {
