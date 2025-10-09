@@ -944,10 +944,14 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--warn);
+  background: var(--warn); /* default: yellow (has deadline) */
   opacity: 0.9;
 }
 
+/* overdue (deadline passed, not completed) turns dot red */
+.chapter-box.has-deadline.deadline-past::before {
+  background: var(--error);
+}
 
 /* Completed chapters go green */
 .chapter-box.completed {
@@ -956,16 +960,11 @@ body {
   border-color: color-mix(in oklab, var(--success) 55%, transparent);
 }
 
-/* If there's a deadline dot, make it green when completed */
-.chapter-box.completed.has-deadline::before {
-  background: var(--success);
-}
-
-/* Completed should trump "past" red */
+/* Completed always trumps red or yellow */
+.chapter-box.completed.has-deadline::before,
 .chapter-box.completed.deadline-past::before {
   background: var(--success);
 }
-
 
 /* ===== Calendar Subscribe (FAB + modal) ===== */
 
