@@ -19,12 +19,18 @@ function toLocalInputDateString(d) {
   return `${y}-${m}-${day}`;
 }
 
-// "YYYY-MM-DD" -> unix seconds at LOCAL midnight
-function dateInputToUnix(dateStr) {
+// "YYYY-MM-DD" + hour -> unix seconds at LOCAL hour
+function dateHourToUnix(dateStr, hourStr) {
   if (!dateStr) return null;
   const [y, m, d] = dateStr.split("-").map((x) => Number(x));
   if (!y || !m || !d) return null;
-  const dt = new Date(y, m - 1, d, 0, 0, 0, 0); // local midnight
+
+  let h = Number(hourStr);
+  if (!Number.isFinite(h)) h = 0;
+  if (h < 0) h = 0;
+  if (h > 23) h = 23;
+
+  const dt = new Date(y, m - 1, d, h, 0, 0, 0); // local at given hour
   return Math.floor(dt.getTime() / 1000);
 }
 
@@ -61,7 +67,6 @@ export default function openDatePicker({
   body.setAttribute("role", centered ? "dialog" : "group");
   if (centered) body.setAttribute("aria-label", "Pick a date");
 
-
   // Row: date + hour input
   const rowInput = document.createElement("div");
   rowInput.className = "dp-row";
@@ -89,9 +94,13 @@ export default function openDatePicker({
 
     hourInput.value = String(num);
   });
-  // initial value for date
+
+  // initial value for date and hour
   const initialDate = toDate(initial);
-  if (initialDate) input.value = toLocalInputDateString(initialDate);
+  if (initialDate) {
+    input.value = toLocalInputDateString(initialDate);
+    hourInput.value = String(initialDate.getHours());
+  }
 
   // min and max for date
   const minDate = toDate(min);
@@ -144,7 +153,7 @@ export default function openDatePicker({
     label: "Save",
     type: "primary",
     onClick: () => {
-      const ts = dateInputToUnix(input.value);
+      const ts = dateHourToUnix(input.value, hourInput.value);
       try { onPick?.(ts); } finally { modal.close(); }
     },
   });
