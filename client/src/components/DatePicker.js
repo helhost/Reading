@@ -28,9 +28,16 @@ function dateHourToUnix(dateStr, hourStr) {
   let h = Number(hourStr);
   if (!Number.isFinite(h)) h = 0;
   if (h < 0) h = 0;
-  if (h > 23) h = 23;
+  if (h > 24) h = 24;
 
-  const dt = new Date(y, m - 1, d, h, 0, 0, 0); // local at given hour
+  // special case: 24 means midnight at the *end* of this date
+  if (h === 24) {
+    const dt = new Date(y, m - 1, d, 0, 0, 0, 0); // this date at 00:00
+    dt.setDate(dt.getDate() + 1);                 // move to next day 00:00
+    return Math.floor(dt.getTime() / 1000);
+  }
+
+  const dt = new Date(y, m - 1, d, h, 0, 0, 0);   // local at given hour
   return Math.floor(dt.getTime() / 1000);
 }
 
@@ -81,7 +88,7 @@ export default function openDatePicker({
   hourInput.type = "number";
   hourInput.className = "dp-input";
   hourInput.min = 0;
-  hourInput.max = 23;
+  hourInput.max = 24;
   hourInput.placeholder = "hh";
   hourInput.addEventListener("input", () => {
     let val = hourInput.value.replace(/\D/g, ""); // keep digits only
@@ -89,7 +96,7 @@ export default function openDatePicker({
 
     if (val.length > 2) val = val.slice(0, 2);    // at most 2 digits
     let num = Number(val);
-    if (num > 23) num = 23;
+    if (num > 24) num = 24;
     if (num < 0) num = 0;
 
     hourInput.value = String(num);
@@ -98,8 +105,18 @@ export default function openDatePicker({
   // initial value for date and hour
   const initialDate = toDate(initial);
   if (initialDate) {
-    input.value = toLocalInputDateString(initialDate);
-    hourInput.value = String(initialDate.getHours());
+    const d = new Date(initialDate);
+
+    // If the stored time is exactly midnight, treat it as "24:00 of previous day"
+    if (d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0) {
+      const prev = new Date(d);
+      prev.setDate(prev.getDate() - 1);
+      input.value = toLocalInputDateString(prev);
+      hourInput.value = "24";
+    } else {
+      input.value = toLocalInputDateString(d);
+      hourInput.value = String(d.getHours());
+    }
   }
 
   // min and max for date
