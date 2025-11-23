@@ -84,12 +84,9 @@ func BuildICS(events []Event) string {
 			continue
 		}
 
-		// Interpret the stored epoch as a *date anchor* and set 18:00 local.
-		// If your epoch already encodes a precise instant, and you still want 18:00
-		// on that *date*, derive the Y-M-D in local time and set 18:00 explicitly:
-		dt := time.Unix(e.DeadlineEpoch.Int64, 0).In(loc)
-		startLocal := time.Date(dt.Year(), dt.Month(), dt.Day(), 18, 0, 0, 0, loc)
-		endLocal := startLocal.Add(6 * time.Hour) // goes to 00:00 next day, DST-safe
+		// Treat DeadlineEpoch as the END of a 1 hour event.
+		endLocal := time.Unix(e.DeadlineEpoch.Int64, 0).In(loc)
+		startLocal := endLocal.Add(-1 * time.Hour)
 
 		startUTC := startLocal.UTC().Format("20060102T150405Z")
 		endUTC := endLocal.UTC().Format("20060102T150405Z")
