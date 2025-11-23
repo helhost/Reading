@@ -893,7 +893,6 @@ body {
 .toast--warn    { background: var(--warn);    color: var(--black) }
 .toast--error   { background: var(--error);   color: var(--white) }
 
-
 /* ===== DatePicker (popover) ===== */
 .datepicker-popover.modal-card--popover {
   width: auto;
@@ -908,7 +907,6 @@ body {
 .dp-row { display: flex; align-items: center; gap: 8px; }
 
 .dp-input {
-  width: 100%;
   padding: 0.55rem 0.7rem;
   border-radius: 10px;
   border: 1px solid var(--border-color);
@@ -917,9 +915,53 @@ body {
   outline: none;
   transition: border-color .15s ease, box-shadow .15s ease;
 }
+
+/* date input grows */
+.dp-input[type="date"] {
+  flex: 1;
+  min-width: 0;      /* prevents overflow on narrow screens */
+}
+
+/* hour input stays small */
+.dp-input[type="number"] {
+  width: 56px;
+  text-align: center;
+}
+
+/* remove number spinners */
+.dp-input[type="number"]::-webkit-inner-spin-button,
+.dp-input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.dp-input[type="number"] {
+  -moz-appearance: textfield;
+}
+
 .dp-input:focus {
   border-color: color-mix(in oklab, var(--text-color) 40%, transparent);
   box-shadow: 0 0 0 3px color-mix(in oklab, var(--text-color) 14%, transparent);
+}
+
+/* narrower date field */
+.dp-row .dp-input[type="date"] {
+  max-width: 200px;
+}
+
+/* hour input: smaller + no arrows */
+.dp-row .dp-input[type="number"] {
+  max-width: 64px;
+  text-align: center;
+}
+
+/* hide arrows in all browsers */
+.dp-input[type="number"]::-webkit-inner-spin-button,
+.dp-input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.dp-input[type="number"] {
+  -moz-appearance: textfield;
 }
 
 /* quick chips */

@@ -61,24 +61,46 @@ export default function openDatePicker({
   body.setAttribute("role", centered ? "dialog" : "group");
   if (centered) body.setAttribute("aria-label", "Pick a date");
 
-  // Row: date input
+
+  // Row: date + hour input
   const rowInput = document.createElement("div");
   rowInput.className = "dp-row";
 
+  // date only
   const input = document.createElement("input");
   input.type = "date";
   input.className = "dp-input";
 
+  // hour only
+  const hourInput = document.createElement("input");
+  hourInput.type = "number";
+  hourInput.className = "dp-input";
+  hourInput.min = 0;
+  hourInput.max = 23;
+  hourInput.placeholder = "hh";
+  hourInput.addEventListener("input", () => {
+    let val = hourInput.value.replace(/\D/g, ""); // keep digits only
+    if (val === "") return;
+
+    if (val.length > 2) val = val.slice(0, 2);    // at most 2 digits
+    let num = Number(val);
+    if (num > 23) num = 23;
+    if (num < 0) num = 0;
+
+    hourInput.value = String(num);
+  });
+  // initial value for date
   const initialDate = toDate(initial);
   if (initialDate) input.value = toLocalInputDateString(initialDate);
 
+  // min and max for date
   const minDate = toDate(min);
   if (minDate) input.min = toLocalInputDateString(minDate);
 
   const maxDate = toDate(max);
   if (maxDate) input.max = toLocalInputDateString(maxDate);
 
-  rowInput.appendChild(input);
+  rowInput.append(input, hourInput);
 
   // Row: quick chips
   const rowQuick = document.createElement("div");
