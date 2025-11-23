@@ -311,10 +311,22 @@ function openCreateAssignmentModal(course, { onCreated }) {
 }
 
 /* -------------------- utils -------------------- */
-
 function formatDeadline(unixSeconds) {
   try {
-    return new Date(unixSeconds * 1000).toLocaleDateString(undefined, {
+    const d = new Date(unixSeconds * 1000);
+    // If exactly midnight, interpret as "previous day 24"
+    if (d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0) {
+      const prev = new Date(d);
+      prev.setDate(prev.getDate() - 1);
+      return prev.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+      });
+    }
+
+    // Normal case
+    return d.toLocaleDateString(undefined, {
       year: "numeric",
       month: "short",
       day: "2-digit",
