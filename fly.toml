@@ -3,7 +3,7 @@ primary_region = "fra"
 
 [env]
   DB_PATH = "/data/data.db"
-  ALLOW_ORIGIN = "https://ucl.etterdal.com"
+  ALLOW_ORIGIN = "https://read.etterdal.com"
   ENV = "prod"
 
 [[mounts]]
